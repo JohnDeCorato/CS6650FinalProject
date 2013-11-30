@@ -4,6 +4,14 @@
 #include "glm/glm.hpp"
 #include "utilities.h"
 #include "kernel.h"
+#include "const.h"
+#include "device_functions.h"
+
+//GLOBALS
+dim3 threadsPerBlock(blockSize);
+
+// A device memory boolean that we use to tell if a bubble pass swaps any elements
+__device__ bool d_swappedAny = false;
 
 #if SHARED == 1
     #define ACC(x,y,z) sharedMemAcc(x,y,z)
@@ -11,18 +19,15 @@
     #define ACC(x,y,z) naiveAcc(x,y,z)
 #endif
 
-//GLOBALS
-dim3 threadsPerBlock(blockSize);
-
 int numObjects;
-const float planetMass = 3e8;
-const __device__ float starMass = 5e10;
-
-const float scene_scale = 2e2; //size of the height map in simulation space
+const __constant__ float planetMass = PLANET_MASS;
+const __device__ float starMass = STAR_MASS;
+const float scene_scale = SCENE_SCALE; //size of the height map in simulation space
 
 glm::vec4 * dev_pos;
 glm::vec3 * dev_vel;
 glm::vec3 * dev_acc;
+glm::vec4 *dev_pos_buffer; // used to double buffer when sorting
 
 void checkCUDAError(const char *msg, int line = -1)
 {
@@ -49,6 +54,22 @@ unsigned int hash(unsigned int a){
     return a;
 }
 
+__device__ __host__
+int getMatOffset(int sideLen, int col, int row) {
+	return col * sideLen + row;
+}
+
+/**
+ *  x = gridWidth
+ *  y = gridHeight
+ *  z = 1
+ */
+dim3 calcGridThreadDimensions(int w, int h) {
+	dim3 dims;
+	dims.x = (int)ceil((float)w / (float)BLOCK_SIDE_SIZE);
+	dims.y = (int)ceil((float)h / (float)BLOCK_SIDE_SIZE);
+	return dims;
+}
 //Function that generates static.
 __host__ __device__ 
 glm::vec3 generateRandomNumberFromThread(float time, int index)
@@ -115,18 +136,28 @@ glm::vec3 calculateAcceleration(glm::vec4 us, glm::vec4 them)
     //F = -------------
     //         r^2
     //
-    //    G*m_us*m_them   G*m_them
-    //a = ------------- = --------
-    //      m_us*r^2        r^2
-    
-    return glm::vec3(0.0f);
+    //        G*m_us*m_them   G*m_them
+    //a     = ------------- = --------
+    //         m_us*r^2        r^2
+
+	/// What we're actually doing is :
+	///   (G*m_them)/(r^2 + eps)  *  (them - us)/r    which ==>
+	///   (G*m_them)/(r^3 + eps)  *  (them - us)
+	///   where eps is some softening factor to avoid the blow up when particles collide
+
+	
+	float dist = glm::length(us - them);
+	float force_mag = (G * planetMass) / (dist * dist + SOFTENING_FACTOR);
+	glm::vec3 result_force(force_mag*(them-us));
+
+    return result_force;
 }
 
 //TODO: Core force calc kernel global memory
 __device__ 
-glm::vec3 naiveAcc(int N, glm::vec4 my_pos, glm::vec4 * their_pos)
+glm::vec3 naiveAcc(int N, glm::vec4 my_pos, glm::vec4 *their_pos)
 {
-    glm::vec3 acc = calculateAcceleration(my_pos, glm::vec4(0,0,0,starMass));
+    glm::vec3 acc = calculateAcceleration(my_pos, *their_pos);
     return acc;
 }
 
@@ -186,31 +217,6 @@ void sendToVBO(int N, glm::vec4 * pos, float * vbo, int width, int height, float
     }
 }
 
-//Update the texture pixel buffer object
-//(This texture is where openGL pulls the data for the height map)
-__global__
-void sendToPBO(int N, glm::vec4 * pos, float4 * pbo, int width, int height, float s_scale)
-{
-    int index = threadIdx.x + (blockIdx.x * blockDim.x);
-    int x = index % width;
-    int y = index / width;
-    float w2 = width / 2.0;
-    float h2 = height / 2.0;
-
-    float c_scale_w = width / s_scale;
-    float c_scale_h = height / s_scale;
-
-    glm::vec3 color(0.05, 0.15, 0.3);
-    glm::vec3 acc = ACC(N, glm::vec4((x-w2)/c_scale_w,(y-h2)/c_scale_h,0,1), pos);
-
-    if(x<width && y<height)
-    {
-        float mag = sqrt(sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z));
-        // Each thread writes one pixel location in the texture (textel)
-        pbo[index].w = (mag < 1.0f) ? mag : 1.0f;
-    }
-}
-
 /*************************************
  * Wrappers for the __global__ calls *
  *************************************/
@@ -223,6 +229,8 @@ void initCuda(int N)
 
     cudaMalloc((void**)&dev_pos, N*sizeof(glm::vec4));
     checkCUDAErrorWithLine("Kernel failed!");
+	cudaMalloc((void**)&dev_pos_buffer, N*sizeof(glm::vec4));
+    checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_vel, N*sizeof(glm::vec3));
     checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_acc, N*sizeof(glm::vec3));
@@ -232,17 +240,154 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
     generateCircularVelArray<<<fullBlocksPerGrid, blockSize>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
+
+	// copy the new positions into the position buffer as well
+	cudaMemcpy(dev_pos_buffer, dev_pos, N*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
+	checkCUDAErrorWithLine("initCuda: memcpy failed!");
     cudaThreadSynchronize();
+}
+
+
+/**
+ *  Each thread takes care of a single body on body calculation.
+ *  We make a grid of n x n of blocks/threads. Each .x is a new body
+ *  each .y is a new calculation.
+ */
+__global__ 
+void updateForces(int num_agents, float dt, glm::vec4 *d_pos, glm::vec3 *d_acc) 
+{
+	 int this_index = threadIdx.x + (blockIdx.x * blockDim.x);
+     int other_index = threadIdx.y + (blockIdx.y * blockDim.y);
+
+	 if (this_index >= num_agents || other_index >= num_agents) { return; }
+
+	 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
+
+	 atomicAdd(&d_acc[this_index].x, acc.x * dt);
+	 atomicAdd(&d_acc[this_index].y, acc.y * dt);
+	 atomicAdd(&d_acc[this_index].z, acc.z * dt);
+      
+}
+
+
+/**
+ *  This kernel takes two agent cells and flips them horizontally if a2.x < a1.x
+ *  Returns:   dirty:  true if any 
+ *			   
+ */
+__global__ 
+	void iterateBubble(bool horizontal, bool odd, int sideLen, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec4 *out_d_pos_mat)
+{
+	// Get the column for the agent
+	int tidx = blockIdx.x*blockDim.x + threadIdx.x;
+	int col = tidx * 2;
+	if (odd) col += 1;
+
+	// Get the row for the agent
+	int row = blockIdx.y*blockDim.y + threadIdx.y;
+
+	//  sideLen - 1 because we look ahead +1 for the swap
+	if ((horizontal && col < sideLen-1 && row < sideLen) ||
+		(!horizontal && col < sideLen && row < sideLen-1)) {
+
+		int agent1Off = getMatOffset(sideLen, col, row);
+		int agent2Off = horizontal ? getMatOffset(sideLen, col+1, row) : getMatOffset(sideLen, col, row+1);
+
+		float agent1Value = horizontal ? d_pos_mat[agent1Off].x : d_pos_mat[agent1Off].y;
+		float agent2Value = horizontal ? d_pos_mat[agent2Off].x : d_pos_mat[agent2Off].y;
+
+		// Swap them if needed
+		if (agent2Value < agent1Value) {
+			out_d_pos_mat[agent1Off] = d_pos_mat[agent2Off];
+			out_d_pos_mat[agent2Off] = d_pos_mat[agent1Off];
+			
+			// swap velocities too
+			glm::vec3 tempVel = d_vel_mat[agent1Off];
+			d_vel_mat[agent1Off] = d_vel_mat[agent2Off];
+			d_vel_mat[agent2Off] = tempVel;
+
+			d_swappedAny = true;
+		}
+	}
+}
+
+
+void runBubbleKernel(bool horizontal, bool odd, int numAgents, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec4 *d_pos_buffer)
+{	
+	// Run the sort kernel for one bubble pass
+	int sideLen = (int)sqrt((float)numAgents);
+	dim3 gridDims = calcGridThreadDimensions(sideLen, sideLen);
+	dim3 blockDims = dim3(BLOCK_SIDE_SIZE, BLOCK_SIDE_SIZE);
+
+	// Writes all new positions into d_pos_buffer
+	iterateBubble<<<gridDims, blockDims>>>(horizontal, odd, sideLen, d_pos_mat, d_vel_mat, d_pos_buffer);
+	cudaThreadSynchronize();
+
+	cudaMemcpy(d_pos_mat, d_pos_buffer, numAgents*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
+	// Swap dev_pos with d_pos_buffer
+	//glm::vec4 *temp = d_pos_mat;
+	//d_pos_mat = d_pos_buffer;
+	//d_pos_buffer = temp;
+	
+}
+
+void spacialSort(int N, glm::vec4 *d_pos, glm::vec3 *d_vel, glm::vec4 *d_pos_buffer, int max_iterations) {
+	bool swappedAny;
+	int count = 0;
+	do {
+		swappedAny = false;
+		cudaMemcpyToSymbol(d_swappedAny, &swappedAny, sizeof(bool), 0, cudaMemcpyHostToDevice);
+		
+		// iterate bubble sort on odd and even columns and odd and even rows
+		runBubbleKernel(true, false, N, d_pos, d_vel, d_pos_buffer);
+		//runBubbleKernel(true, true, N, d_pos, d_vel, d_pos_buffer);
+		//runBubbleKernel(false, false, N, d_pos, d_vel, d_pos_buffer);
+		//runBubbleKernel(false, true, N, d_pos, d_vel, d_pos_buffer);
+
+		// iterate the bubbling again if we made any swaps (otherwise, it's correct)
+		cudaMemcpyFromSymbol(&swappedAny, d_swappedAny, sizeof(bool), 0, cudaMemcpyDeviceToHost);
+		
+		checkCUDAError("Kernel failed");
+		count++;
+	} while(swappedAny == true && (count < max_iterations || max_iterations == -1));
+
+}
+__global__
+void clearAccs(int num_agents, glm::vec3 *d_acc)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+	d_acc[index] = glm::vec3(0.0f);
 }
 
 void cudaNBodyUpdateWrapper(float dt)
 {
-    dim3 fullBlocksPerGrid((int)ceil(float(numObjects)/float(blockSize)));
-    updateF<<<fullBlocksPerGrid, blockSize, blockSize*sizeof(glm::vec4)>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
-    checkCUDAErrorWithLine("Kernel failed!");
-    updateS<<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
-    checkCUDAErrorWithLine("Kernel failed!");
+	dim3 gridDims = calcGridThreadDimensions(numObjects, numObjects);
+	dim3 blockDims = dim3(BLOCK_SIDE_SIZE, BLOCK_SIDE_SIZE);
+
+	// Clear the 2Darray of accelerations
+	clearAccs<<<gridDims, blockDims>>>(numObjects, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
+
+	// Sort the 2Darray of positions spatially
+	// Need to pass dev_pos and dev_vel because it swaps array elements around
+	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, -1);
+
+	// Average forces from the 16 objects spacially around you
+	//updateForces<<<gridDims, blockDims>>>(numObjects, dt, dev_pos, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
     cudaThreadSynchronize();
+
+	// Update positions of all particles!
+	updateS<<<gridDims, blockDims>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+    checkCUDAErrorWithLine("Kernel failed!");
+
+	// Update the position buffer with the new positions
+	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
+    
+	cudaThreadSynchronize();
+	return;
 }
 
 void cudaUpdateVBO(float * vbodptr, int width, int height)
@@ -251,12 +396,3 @@ void cudaUpdateVBO(float * vbodptr, int width, int height)
     sendToVBO<<<fullBlocksPerGrid, blockSize>>>(numObjects, dev_pos, vbodptr, width, height, scene_scale);
     cudaThreadSynchronize();
 }
-
-void cudaUpdatePBO(float4 * pbodptr, int width, int height)
-{
-    dim3 fullBlocksPerGrid((int)ceil(float(width*height)/float(blockSize)));
-    sendToPBO<<<fullBlocksPerGrid, blockSize, blockSize*sizeof(glm::vec4)>>>(numObjects, dev_pos, pbodptr, width, height, scene_scale);
-    cudaThreadSynchronize();
-}
-
-

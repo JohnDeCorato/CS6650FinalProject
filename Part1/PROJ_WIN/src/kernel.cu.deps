@@ -243,8 +243,8 @@ C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\crtdefs.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\swprintf.inl
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\cuda.h
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm/glm.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core/_fixes.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm/glm.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core/_fixes.hpp
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\climits
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\cfloat
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\float.h
@@ -259,107 +259,107 @@ C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\crtdefs.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\xstddef
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\cstddef
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\cstdio
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core/setup.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/_detail.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\setup.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core/setup.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/_detail.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\setup.hpp
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\cassert
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\assert.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\crtdefs.h
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/_vectorize.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/type.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_half.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_half.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_detail.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_float.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_half.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\setup.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_int.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\setup.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_detail.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_gentype.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_size.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec1.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_gentype.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_float.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_int.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_size.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_swizzle.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_swizzle_func.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec1.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec2.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_float.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_int.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_size.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_swizzle.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec2.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec3.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_float.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_int.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_size.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_swizzle.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec3.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec4.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_float.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_int.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_size.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_swizzle.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_vec4.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x2.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_gentype.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x2.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x3.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x3.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x4.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat2x4.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x2.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x2.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x3.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x3.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x4.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat3x4.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x2.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x2.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x3.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x3.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x4.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\type_mat4x4.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_trigonometric.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_trigonometric.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_exponential.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_exponential.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_common.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_fixes.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_common.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_packing.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_packing.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_geometric.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_geometric.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_matrix.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_matrix.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_vector_relational.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\_detail.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_vector_relational.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_integer.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_integer.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/func_noise.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core\func_noise.inl
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\./core/_swizzle.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\utilities.h
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm/glm.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core/_fixes.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/_vectorize.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/type.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_half.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_half.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_detail.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_float.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_half.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\setup.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_int.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\setup.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_detail.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_gentype.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_size.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec1.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_gentype.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_float.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_int.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_size.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_swizzle.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_swizzle_func.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec1.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec2.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_float.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_int.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_size.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_swizzle.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec2.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec3.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_float.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_int.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_size.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_swizzle.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec3.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec4.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_float.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_int.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_size.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_swizzle.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_vec4.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x2.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_gentype.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x2.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x3.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x3.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x4.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat2x4.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x2.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x2.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x3.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x3.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x4.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat3x4.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x2.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x2.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x3.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x3.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x4.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\type_mat4x4.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_trigonometric.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_trigonometric.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_exponential.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_exponential.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_common.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_fixes.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_common.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_packing.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_packing.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_geometric.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_geometric.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_matrix.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_matrix.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_vector_relational.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\_detail.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_vector_relational.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_integer.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_integer.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/func_noise.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core\func_noise.inl
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\./core/_swizzle.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\utilities.h
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm/glm.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core/_fixes.hpp
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\algorithm
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\memory
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\xmemory
@@ -415,7 +415,6 @@ C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\emmintrin.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\xmmintrin.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\mmintrin.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\crtdefs.h
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\ammintrin.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\mm3dnow.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\crtdefs.h
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\mmintrin.h
@@ -514,11 +513,11 @@ C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\sstream
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\string
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\vector
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\xfunctional
-c:\users\jd537\documents\github\project3-simulation\part1\src\cudaMat4.h
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm/glm.hpp
-c:\users\jd537\documents\github\project3-simulation\part1\src\glm\core/_fixes.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\cudaMat4.h
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm/glm.hpp
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\glm\core/_fixes.hpp
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\cuda_runtime.h
-c:\users\jd537\documents\github\project3-simulation\part1\src\kernel.h
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\kernel.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\thrust/random.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\thrust/detail/config.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\thrust/detail/config/config.h
@@ -568,3 +567,5 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\math_constants.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\cuda.h
 C:/ProgramData/NVIDIA Corporation/CUDA Samples/v5.5/common/inc\helper_math.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\cuda_runtime.h
+c:\users\localuser\dropbox\projects\cuda\cs6650\cs6650finalproject\part1\src\const.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.5\include\device_functions.h

@@ -3,10 +3,8 @@
  * main.cpp */
 
 #include "main.h"
+#include "const.h"
 
-#define N_FOR_VIS 25
-#define DT 0.2
-#define VISUALIZE 1
 //-------------------------------
 //-------------MAIN--------------
 //-------------------------------
@@ -18,7 +16,6 @@ int main(int argc, char** argv)
     init(argc, argv);
 
     cudaGLSetGLDevice( compat_getMaxGflopsDeviceId() );
-    initPBO(&pbo);
     cudaGLRegisterBufferObject( planetVBO );
     
 #if VISUALIZE == 1 
@@ -28,7 +25,7 @@ int main(int argc, char** argv)
 #endif
 
     projection = glm::perspective(fovy, float(width)/float(height), zNear, zFar);
-    view = glm::lookAt(cameraPosition, glm::vec3(0), glm::vec3(0,0,1));
+    view = glm::lookAt(cameraPosition, glm::vec3(0), glm::vec3(0,1,0));
 
     projection = projection * view;
 
@@ -60,18 +57,15 @@ void runCuda()
 
     float4 *dptr=NULL;
     float *dptrvert=NULL;
-    cudaGLMapBufferObject((void**)&dptr, pbo);
     cudaGLMapBufferObject((void**)&dptrvert, planetVBO);
 
     // execute the kernel
     cudaNBodyUpdateWrapper(DT);
 #if VISUALIZE == 1
-    cudaUpdatePBO(dptr, field_width, field_height);
     cudaUpdateVBO(dptrvert, field_width, field_height);
 #endif
     // unmap buffer object
     cudaGLUnmapBufferObject(planetVBO);
-    cudaGLUnmapBufferObject(pbo);
 }
 
 int timebase = 0;
@@ -94,10 +88,6 @@ void display()
     sprintf( title, "565 NBody sim [%0.2f fps]", fps );
     glutSetWindowTitle(title);
 
-    glBindBuffer( GL_PIXEL_UNPACK_BUFFER, pbo);
-    glBindTexture(GL_TEXTURE_2D, displayImage);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, field_width, field_height, 
-            GL_RGBA, GL_FLOAT, NULL);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);   
 #if VISUALIZE == 1
@@ -150,7 +140,8 @@ void keyboard(unsigned char key, int x, int y)
     switch (key) 
     {
         case(27):
-            exit(1);
+			cudaDeviceReset();
+            exit(0);
             break;
     }
 }
@@ -180,25 +171,6 @@ void init(int argc, char* argv[])
 
     initVAO();
     initTextures();
-}
-
-void initPBO(GLuint* pbo)
-{
-    if (pbo) 
-    {
-        // set up vertex data parameter
-        int num_texels = field_width*field_height;
-        int num_values = num_texels * 4;
-        int size_tex_data = sizeof(GLfloat) * num_values;
-
-        // Generate a buffer ID called a PBO (Pixel Buffer Object)
-        glGenBuffers(1,pbo);
-        // Make this the current UNPACK buffer (OpenGL is state-based)
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, *pbo);
-        // Allocate data for the buffer. 4-channel 8-bit image
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, size_tex_data, NULL, GL_DYNAMIC_COPY);
-        cudaGLRegisterBufferObject( *pbo );
-    }
 }
 
 void initTextures()
@@ -330,21 +302,6 @@ void initShaders(GLuint * program)
 //-------------------------------
 //---------CLEANUP STUFF---------
 //-------------------------------
-
-void deletePBO(GLuint* pbo)
-{
-    if (pbo) 
-    {
-        // unregister this buffer object with CUDA
-        cudaGLUnregisterBufferObject(*pbo);
-
-        glBindBuffer(GL_ARRAY_BUFFER, *pbo);
-        glDeleteBuffers(1, pbo);
-
-        *pbo = (GLuint)NULL;
-    }
-}
-
 void deleteTexture(GLuint* tex)
 {
     glDeleteTextures(1, tex);

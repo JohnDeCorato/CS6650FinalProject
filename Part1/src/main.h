@@ -36,7 +36,6 @@ using namespace std;
 GLuint positionLocation = 0;
 GLuint texcoordsLocation = 1;
 const char *attributeLocations[] = { "Position", "Texcoords" };
-GLuint pbo = (GLuint)NULL;
 GLuint planeVBO = (GLuint)NULL;
 GLuint planeTBO = (GLuint)NULL;
 GLuint planeIBO = (GLuint)NULL;
@@ -53,11 +52,11 @@ const int field_height = 800;
 
 float fovy = 60.0f;
 float zNear = 0.10;
-float zFar = 5.0;
+float zFar = 50.0;
 
 glm::mat4 projection;
 glm::mat4 view;
-glm::vec3 cameraPosition(1.75,1.75,1.35);
+glm::vec3 cameraPosition(0,0,5);
 //-------------------------------
 //----------CUDA STUFF-----------
 //-------------------------------
@@ -86,7 +85,6 @@ void keyboard(unsigned char key, int x, int y);
 void init(int argc, char* argv[]);
 
 
-void initPBO(GLuint* pbo);
 void initCuda();
 void initTextures();
 void initVAO();
@@ -97,7 +95,6 @@ void initShaders(GLuint * program);
 //-------------------------------
 
 void cleanupCuda();
-void deletePBO(GLuint* pbo);
 void deleteTexture(GLuint* tex);
 void shut_down(int return_code);
 
