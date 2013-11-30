@@ -6,3 +6,4 @@
 *.idb
 *.o
 *.ipch
+*.unsuccessfulbuild
