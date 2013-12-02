@@ -49,10 +49,11 @@ __global__
 	// Get the column for the agent
 	int tidx = blockIdx.x*blockDim.x + threadIdx.x;
 	int col = tidx * 2;
-	if (odd) col += 1;
+	if (odd && horizontal) col += 1;
 
 	// Get the row for the agent
 	int row = blockIdx.y*blockDim.y + threadIdx.y;
+	if (odd && !horizontal) row += 1;
 
 	//  numAgents - 1 because we look ahead +1 for the swap
 	if ((horizontal && col < numAgents-1 && row < numAgents) ||
