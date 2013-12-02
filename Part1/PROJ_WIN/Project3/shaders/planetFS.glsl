@@ -1,6 +1,8 @@
-in vec4 vColor;
+in Data{
+ vec4 vColor;
+} DataIn;
 
 void main(void)
 {
-	gl_FragColor = vec4(1.0);
+	gl_FragColor = DataIn.vColor;
 }

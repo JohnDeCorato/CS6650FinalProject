@@ -116,9 +116,13 @@ void display()
     glUseProgram(program[PASS_THROUGH]);
 
     glEnableVertexAttribArray(positionLocation);
+	glEnableVertexAttribArray(indexLocation);
 
     glBindBuffer(GL_ARRAY_BUFFER, planetVBO);
     glVertexAttribPointer((GLuint)positionLocation, 4, GL_FLOAT, GL_FALSE, 0, 0); 
+
+	glBindBuffer(GL_ARRAY_BUFFER, planetInBO);
+	glVertexAttribIPointer((GLuint)indexLocation, 1, GL_INT, 0, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planetIBO);
    
@@ -128,6 +132,7 @@ void display()
     glPointSize(1.0f);
 
     glDisableVertexAttribArray(positionLocation);
+	glDisableVertexAttribArray(indexLocation);
 
 #endif
     glutPostRedisplay();
@@ -196,6 +201,7 @@ void initVAO(void)
     GLfloat *texcoords = new GLfloat[2*num_verts]; 
     GLfloat *bodies    = new GLfloat[4*(N_FOR_VIS+1)];
     GLuint *indices    = new GLuint[6*num_faces];
+	GLint *bind	   = new GLint[N_FOR_VIS+1];
     GLuint *bindices   = new GLuint[N_FOR_VIS+1];
 
     glm::vec4 ul(-1.0,-1.0,1.0,1.0);
@@ -233,6 +239,7 @@ void initVAO(void)
         bodies[4*i+1] = 0.0f;
         bodies[4*i+2] = 0.0f;
         bodies[4*i+3] = 1.0f;
+		bind[i] = i;
         bindices[i] = i;
     }
 
@@ -240,6 +247,7 @@ void initVAO(void)
     glGenBuffers(1, &planeTBO);
     glGenBuffers(1, &planeIBO);
     glGenBuffers(1, &planetVBO);
+	glGenBuffers(1, &planetInBO);
     glGenBuffers(1, &planetIBO);
     
     glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
@@ -253,6 +261,9 @@ void initVAO(void)
 
     glBindBuffer(GL_ARRAY_BUFFER, planetVBO);
     glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS+1)*sizeof(GLfloat), bodies, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, planetInBO);
+	glBufferData(GL_ARRAY_BUFFER, (N_FOR_VIS+1)*sizeof(GLint), bind, GL_DYNAMIC_DRAW);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planetIBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, (N_FOR_VIS+1)*sizeof(GLuint), bindices, GL_STATIC_DRAW);
@@ -264,6 +275,7 @@ void initVAO(void)
     delete[] texcoords;
     delete[] bodies;
     delete[] indices;
+	delete[] bind;
     delete[] bindices;
 }
 
@@ -286,7 +298,7 @@ void initShaders(GLuint * program)
         glUniform1i(location, 0);
     }
     
-    program[1] = glslUtility::createProgram("shaders/planetVS.glsl", "shaders/planetGS.glsl", "shaders/planetFS.glsl", attributeLocations, 1);
+    program[1] = glslUtility::createProgram("shaders/planetVS.glsl", "shaders/planetGS.glsl", "shaders/planetFS.glsl", attributeLocations, 3);
     glUseProgram(program[1]);
     
     if ((location = glGetUniformLocation(program[1], "u_projMatrix")) != -1)

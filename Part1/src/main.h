@@ -35,11 +35,13 @@ using namespace std;
 
 GLuint positionLocation = 0;
 GLuint texcoordsLocation = 1;
-const char *attributeLocations[] = { "Position", "Texcoords" };
+GLuint indexLocation = 2;
+const char *attributeLocations[] = { "Position", "Texcoords", "Index"};
 GLuint planeVBO = (GLuint)NULL;
 GLuint planeTBO = (GLuint)NULL;
 GLuint planeIBO = (GLuint)NULL;
 GLuint planetVBO = (GLuint)NULL;
+GLuint planetInBO = (GLuint)NULL;
 GLuint planetIBO = (GLuint)NULL;
 GLuint displayImage;
 GLuint program[2];

@@ -1,13 +1,14 @@
-#version 330
-
 in vec4 Position;
+in int Index;
 
-out vec4 vColor;
+out Data{
+ vec4 vColor;
+} DataOut;
 
 void main(void)
 {
-	gl_FrontColor = vec4(1,1,1,1);
-	vColor = vec4(1.0);
+	float sideLen = 10.0;
+	DataOut.vColor = vec4(Index/10.0, Index%10, 0, 1);
 
 	gl_Position = Position;
 }
