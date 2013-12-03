@@ -309,6 +309,11 @@ void initShaders(GLuint * program)
     {
         glUniform3fv(location, 1, &cameraPosition[0]);
     }
+	if ((location = glGetUniformLocation(program[1], "sideLen")) != -1)
+    {
+		glUniform1i(location, (int)sqrt((float)N_FOR_VIS));
+
+    }
 }
 
 //-------------------------------

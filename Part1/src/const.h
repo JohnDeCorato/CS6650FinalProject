@@ -1,8 +1,8 @@
-#define N_FOR_VIS 100
+#define N_FOR_VIS (200*200)
 #define DT .2
 #define VISUALIZE 1
 #define SOFTENING_FACTOR .0001
-#define SHELL_NUM 10
+#define SHELL_NUM 2
 
 #define PLANET_MASS 3e8
 #define STAR_MASS 5e10

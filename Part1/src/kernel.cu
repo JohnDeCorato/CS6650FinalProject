@@ -150,6 +150,18 @@ glm::vec3 calculateAcceleration(glm::vec4 us, glm::vec4 them)
     return result_force;
 }
 
+
+__device__
+glm::vec3 naiveSeparation(glm::vec4 us, glm::vec4 them)
+{
+	
+	float dist = glm::length(us - them);
+	float force_mag = (G * planetMass) / (dist * dist * dist + SOFTENING_FACTOR);
+	glm::vec3 result_force(force_mag*(us-them));
+
+    return result_force;
+}
+
 //TODO: Core force calc kernel global memory
 __device__ 
 glm::vec3 naiveAcc(int N, glm::vec4 my_pos, glm::vec4 *their_pos)
@@ -188,6 +200,12 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
     int index = threadIdx.x + (blockIdx.x * blockDim.x);
     if( index < N )
     {
+		// bounds
+		/*if (pos[index].x < 0) vel[index].x = abs(vel[index].x);
+		if (pos[index].x > 1000) vel[index].x = -1*abs(vel[index].x);
+		if (pos[index].y < 0) vel[index].y = abs(vel[index].y);
+		if (pos[index].y > 1000) vel[index].y = -1*abs(vel[index].y);*/
+		
         vel[index]   += acc[index]   * dt;
         pos[index].x += vel[index].x * dt;
         pos[index].y += vel[index].y * dt;
@@ -224,7 +242,7 @@ void sendToVBO(int N, glm::vec4 * pos, float * vbo, int width, int height, float
  *  each .y is a new calculation.
  */
 __global__ 
-void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::vec3 *d_acc) 
+void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::vec3 *d_vel, glm::vec3 *d_acc) 
 {
 	 int this_index = threadIdx.x + (blockIdx.x * blockDim.x);
 	 if (this_index >= num_agents) { return; }
@@ -232,18 +250,42 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 	 int col = this_index / sideLen;
 	 int row = this_index % sideLen;
 
+	 // Sum up the average vel and pos of the ones around it
+	 float2 avgVel;	 avgVel.x = 0; avgVel.y = 0;
+	 int totalInChunk;
+
 	 // Loop through the SHELL_NUM shells of agents around this body
 	 for (int i=-SHELL_NUM; i <= SHELL_NUM; i++) {
 		 for (int j=-SHELL_NUM; j <= SHELL_NUM; j++) {
-			 int other_index = getMatOffset(sideLen, i, j);
+			 int other_index = getMatOffset(sideLen, i+col, j+row);
 			 if (other_index < 0 || other_index >= num_agents) continue;
-			 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
+			 
+			 totalInChunk++;
 
-			 d_acc[this_index].x += acc.x * dt);
-			 d_acc[this_index].y += acc.y * dt);
-			 d_acc[this_index].z += acc.z * dt);
+			 avgVel.x += d_vel[other_index].x;
+			 avgVel.y += d_vel[other_index].y;
+			 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
+			 acc += 2.0f*naiveSeparation(d_pos[this_index], d_pos[other_index]);
+
+			 d_acc[this_index].x += acc.x * dt;
+			 d_acc[this_index].y += acc.y * dt;
+			 d_acc[this_index].z += acc.z * dt;
 		 }
 	 }
+
+	 avgVel.x /= totalInChunk;
+	 avgVel.y /= totalInChunk;
+	 
+	 glm::vec3 aVelV = glm::vec3();
+	 aVelV.x = avgVel.x;
+	 aVelV.y = avgVel.y;
+
+	 glm::vec3 targetVel = aVelV * .5f + d_acc[this_index] * 0.5f;
+	 glm::vec3 finalVel = glm::normalize(d_vel[this_index]) * .9f + glm::normalize(targetVel) * 0.1f;
+
+	 d_vel[this_index] = finalVel;
+	 
+
       
 }
 
@@ -291,7 +333,6 @@ __global__
 			//	d_pos_mat[agent2Off].x, d_pos_mat[agent2Off].y, out_d_pos_mat[agent2Off].x, out_d_pos_mat[agent2Off].y);
 			
 			// swap velocities too
-			
 			glm::vec3 tempVel = d_vel_mat[agent1Off];
 			d_vel_mat[agent1Off] = d_vel_mat[agent2Off];
 			d_vel_mat[agent2Off] = tempVel;
@@ -316,10 +357,6 @@ void runBubbleKernel(bool horizontal, bool odd, int numAgents, glm::vec4 *d_pos_
 	cudaThreadSynchronize();
 
 	cudaMemcpy(d_pos_mat, d_pos_buffer, numAgents*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
-	// Swap dev_pos with d_pos_buffer
-	//glm::vec4 *temp = d_pos_mat;
-	//d_pos_mat = d_pos_buffer;
-	//d_pos_buffer = temp;
 	
 }
 
@@ -405,7 +442,7 @@ void cudaNBodyUpdateWrapper(float dt)
 	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
 
 	// Average forces from the 16 objects spacially around you
-	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_acc);
+	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
     cudaThreadSynchronize();
 
