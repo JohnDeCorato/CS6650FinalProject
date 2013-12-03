@@ -95,6 +95,7 @@ void display()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     //glDrawElements(GL_TRIANGLES, 6*field_width*field_height,  GL_UNSIGNED_INT, 0);
 
+#if USE_POINT_RENDERING == 1
     glUseProgram(program[HEIGHT_FIELD]);
 
     glEnableVertexAttribArray(positionLocation);
@@ -133,6 +134,8 @@ void display()
 
     glDisableVertexAttribArray(positionLocation);
 	glDisableVertexAttribArray(indexLocation);
+
+#endif
 
 #endif
     glutPostRedisplay();
@@ -309,6 +312,8 @@ void initShaders(GLuint * program)
     {
         glUniform3fv(location, 1, &cameraPosition[0]);
     }
+
+
 }
 
 //-------------------------------

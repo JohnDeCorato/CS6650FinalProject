@@ -1,6 +1,7 @@
-#define N_FOR_VIS 1000
+#define N_FOR_VIS 100
 #define DT .02
 #define VISUALIZE 1
+#define USE_POINT_RENDERING 1
 #define SOFTENING_FACTOR .0001
 
 #define PLANET_MASS 3e8
