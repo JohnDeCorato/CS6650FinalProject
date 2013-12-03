@@ -58,7 +58,7 @@ float zFar = 50.0;
 
 glm::mat4 projection;
 glm::mat4 view;
-glm::vec3 cameraPosition(0,0,5);
+glm::vec3 cameraPosition(0,0,10);
 //-------------------------------
 //----------CUDA STUFF-----------
 //-------------------------------

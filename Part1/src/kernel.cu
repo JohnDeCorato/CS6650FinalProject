@@ -201,10 +201,10 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
     if( index < N )
     {
 		// bounds
-		/*if (pos[index].x < 0) vel[index].x = abs(vel[index].x);
-		if (pos[index].x > 1000) vel[index].x = -1*abs(vel[index].x);
-		if (pos[index].y < 0) vel[index].y = abs(vel[index].y);
-		if (pos[index].y > 1000) vel[index].y = -1*abs(vel[index].y);*/
+		if (pos[index].x < -200) vel[index].x = abs(vel[index].x);
+		if (pos[index].x > 200) vel[index].x = -1*abs(vel[index].x);
+		if (pos[index].y < -200) vel[index].y = abs(vel[index].y);
+		if (pos[index].y > 200) vel[index].y = -1*abs(vel[index].y);
 		
         vel[index]   += acc[index]   * dt;
         pos[index].x += vel[index].x * dt;
@@ -258,18 +258,24 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 	 for (int i=-SHELL_NUM; i <= SHELL_NUM; i++) {
 		 for (int j=-SHELL_NUM; j <= SHELL_NUM; j++) {
 			 int other_index = getMatOffset(sideLen, i+col, j+row);
-			 if (other_index < 0 || other_index >= num_agents) continue;
+			 if (other_index < 0 || other_index >= num_agents || this_index == other_index) continue;
 			 
-			 totalInChunk++;
+			 // If the other agent is in sight (dot > 0)
+			 if (glm::dot(d_vel[this_index], (glm::vec3)(d_pos[other_index] - d_pos[this_index]))) {
 
-			 avgVel.x += d_vel[other_index].x;
-			 avgVel.y += d_vel[other_index].y;
-			 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
-			 acc += 2.0f*naiveSeparation(d_pos[this_index], d_pos[other_index]);
+				 totalInChunk++;
 
-			 d_acc[this_index].x += acc.x * dt;
-			 d_acc[this_index].y += acc.y * dt;
-			 d_acc[this_index].z += acc.z * dt;
+				 avgVel.x += d_vel[other_index].x;
+				 avgVel.y += d_vel[other_index].y;
+				 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
+				 acc += 4.0f*naiveSeparation(d_pos[this_index], d_pos[other_index]);
+
+				 d_acc[this_index].x += acc.x * dt;
+				 d_acc[this_index].y += acc.y * dt;
+				 d_acc[this_index].z += acc.z * dt;
+			 } else {
+
+			 }
 		 }
 	 }
 
@@ -283,7 +289,7 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 	 glm::vec3 targetVel = aVelV * .5f + d_acc[this_index] * 0.5f;
 	 glm::vec3 finalVel = glm::normalize(d_vel[this_index]) * .9f + glm::normalize(targetVel) * 0.1f;
 
-	 d_vel[this_index] = finalVel;
+	 d_vel[this_index] = 2.0f*finalVel;
 	 
 
       
