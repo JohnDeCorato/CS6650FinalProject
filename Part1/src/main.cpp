@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 #endif
 
     projection = glm::perspective(fovy, float(width)/float(height), zNear, zFar);
-    view = glm::lookAt(cameraPosition, glm::vec3(0), glm::vec3(0,1,0));
+	view = camera.getViewMatrix();
 
     projection = projection * view;
 
@@ -36,7 +36,6 @@ int main(int argc, char** argv)
     glActiveTexture(GL_TEXTURE0);
 
     glEnable(GL_DEPTH_TEST);
-
 
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
@@ -83,6 +82,10 @@ void display()
         frame = 0;
     }
     runCuda();
+	projection = glm::perspective(fovy, float(width)/float(height), zNear, zFar);
+	view = camera.getViewMatrix();
+
+    projection = projection * view;
 
     char title[100];
     sprintf( title, "565 NBody sim [%0.2f fps]", fps );
@@ -96,6 +99,20 @@ void display()
     //glDrawElements(GL_TRIANGLES, 6*field_width*field_height,  GL_UNSIGNED_INT, 0);
 
     glUseProgram(program[HEIGHT_FIELD]);
+	GLint location;
+
+	if ((location = glGetUniformLocation(program[0], "u_image")) != -1)
+    {
+        glUniform1i(location, 0);
+    }
+    if ((location = glGetUniformLocation(program[0], "u_projMatrix")) != -1)
+    {
+        glUniformMatrix4fv(location, 1, GL_FALSE, &projection[0][0]);
+    }
+    if ((location = glGetUniformLocation(program[0], "u_height")) != -1)
+    {
+        glUniform1i(location, 0);
+    }
 
     glEnableVertexAttribArray(positionLocation);
     glEnableVertexAttribArray(texcoordsLocation);
@@ -114,6 +131,20 @@ void display()
     glDisableVertexAttribArray(texcoordsLocation);
 
     glUseProgram(program[PASS_THROUGH]);
+
+	if ((location = glGetUniformLocation(program[1], "u_projMatrix")) != -1)
+    {
+        glUniformMatrix4fv(location, 1, GL_FALSE, &projection[0][0]);
+    }
+    if ((location = glGetUniformLocation(program[1], "u_cameraPos")) != -1)
+    {
+        glUniform3fv(location, 1, &camera.Position[0]);
+    }
+	if ((location = glGetUniformLocation(program[1], "sideLen")) != -1)
+    {
+		glUniform1i(location, (int)sqrt((float)N_FOR_VIS));
+
+    }
 
     glEnableVertexAttribArray(positionLocation);
 	glEnableVertexAttribArray(indexLocation);
@@ -144,6 +175,42 @@ void keyboard(unsigned char key, int x, int y)
     std::cout << key << std::endl;
     switch (key) 
     {
+		case 'a':		
+			camera.RotateY(5.0);
+			break;
+		case 'd':		
+			camera.RotateY(-5.0);
+			break;
+		case 'w':		
+			camera.MoveForward( -0.1 ) ;
+			break;
+		case 's':		
+			camera.MoveForward( 0.1 ) ;
+			break;
+		case 'x':		
+			camera.RotateX(5.0);
+			break;
+		case 'y':		
+			camera.RotateX(-5.0);
+			break;
+		case 'c':		
+			camera.StrafeRight(-0.1);
+			break;
+		case 'v':		
+			camera.StrafeRight(0.1);
+			break;
+		case 'f':
+			camera.MoveUpward(-0.3);
+			break;
+		case 'r':
+			camera.MoveUpward(0.3);
+			break;
+		case 'm':
+			camera.RotateZ(-5.0);
+			break;
+		case 'n':
+			camera.RotateZ(5.0);
+			break;
         case(27):
 			cudaDeviceReset();
             exit(0);
@@ -307,7 +374,7 @@ void initShaders(GLuint * program)
     }
     if ((location = glGetUniformLocation(program[1], "u_cameraPos")) != -1)
     {
-        glUniform3fv(location, 1, &cameraPosition[0]);
+		glUniform3fv(location, 1, &camera.Position[0]);
     }
 	if ((location = glGetUniformLocation(program[1], "sideLen")) != -1)
     {

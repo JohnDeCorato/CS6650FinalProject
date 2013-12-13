@@ -1,7 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <GL/glew.h>
+#include <gl\glew.h>
 #include <GL/glut.h>
 
 #include <stdlib.h>
@@ -16,6 +16,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "kernel.h"
 #include "utilities.h"
+#include "camera.h"
 
 #if CUDA_VERSION >= 5000
     #include <helper_cuda.h>
@@ -58,7 +59,8 @@ float zFar = 50.0;
 
 glm::mat4 projection;
 glm::mat4 view;
-glm::vec3 cameraPosition(0,0,10);
+Camera camera = Camera();
+
 //-------------------------------
 //----------CUDA STUFF-----------
 //-------------------------------
