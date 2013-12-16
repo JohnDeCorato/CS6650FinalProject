@@ -44,6 +44,11 @@ namespace utilityCore {
     extern void printMat4(glm::mat4);
     extern void printVec4(glm::vec4);
     extern void printVec3(glm::vec3);
+
+	template<class T> inline T interpolate (float alpha, const T& x0, const T& x1)
+    {
+        return x0 + ((x1 - x0) * alpha);
+    }
 }
 
 #endif

@@ -10,6 +10,7 @@
 #define SCENE_SCALE 1e2 //size of the height map in simulation space
 
 #define AVOID_RADIUS .1
+#define MAX_SPEED 1
 
 #define BLOCK_SIDE_SIZE 16
 #define BLOCK_SIZE (BLOCK_SIDE_SIZE*BLOCK_SIDE_SIZE)

@@ -26,7 +26,7 @@ vec3 steerToAvoidNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_v
 	float steer = 0;
 	if (time >= 0 && time < minTime)
 	{
-		if (computeNearestApproachPositions(my_pos, my_vel, their_pos, their_vel)
+		if (computeNearestApproachPositions(my_pos, my_vel, their_pos, their_vel, time))
 		{
 			float parallelness = dot(normalize(my_vel), normalize(their_vel));
 			if (parallelness < -0.707f)
@@ -54,7 +54,7 @@ vec3 steerToAvoidNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_v
 			}
 		}
 	}
-	return steer * normalize(vec3(my_vel.y, -my_vel.x, 0) / time;
+	return steer * normalize(vec3(my_vel.y, -my_vel.x, 0)) / time;
 }
 
 __device__
@@ -91,7 +91,7 @@ bool inBoidNeighborhood(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel
 	{
 		if (dist > maxDist)
 			return false;
-		float forwardness = normalize(my_vel).dot(normalize(unitOffset));
+		float forwardness = dot(normalize(my_vel), normalize(offset));
 		return forwardness > cosMaxAngle;
 	}
 }
@@ -99,11 +99,84 @@ bool inBoidNeighborhood(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel
 __device__
 vec3 steerToAvoidCloseNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float maxDist, float cosMaxAngle)
 {
-	if (inBoidNeighborhood(my_pos, my_vel, their_pos, their_vel, maxDist, cosMaxAngle)
+	if (inBoidNeighborhood(my_pos, my_vel, their_pos, their_vel, 0.003, maxDist, cosMaxAngle))
 	{
-		vec3 offset - their_pos - my_pos;
+		vec3 offset = their_pos - my_pos;
 		float dist = length(offset);
 		return offset / (-dist * dist);
 	}
 	return vec3(0.0);
-} 
+}
+
+__device__
+vec3 parallelComponent (const vec3 source, const vec3 unitBasis)
+{
+    const float projection = dot(source, unitBasis);
+    return unitBasis * projection;
+}
+
+__device__
+vec3 perpendicularComponent (const vec3 source, const vec3 unitBasis)
+{
+	return source - parallelComponent(source, unitBasis);
+}
+
+__device__
+vec3 limitDeviationAngleUtility (const bool insideOrOutside,
+                                          vec3& source,
+                                          const float cosineOfConeAngle,
+                                          vec3& basis)
+{
+    // immediately return zero length input vectors
+    float sourceLength = length(source);
+    if (sourceLength == 0) return source;
+
+    // measure the angular diviation of "source" from "basis"
+    vec3 direction = source / sourceLength;
+    float cosineOfSourceAngle = dot(direction, basis);
+
+    // Simply return "source" if it already meets the angle criteria.
+    // (note: we hope this top "if" gets compiled out since the flag
+    // is a constant when the function is inlined into its caller)
+    if (insideOrOutside)
+    {
+		// source vector is already inside the cone, just return it
+		if (cosineOfSourceAngle >= cosineOfConeAngle) return source;
+    }
+    else
+    {
+		// source vector is already outside the cone, just return it
+		if (cosineOfSourceAngle <= cosineOfConeAngle) return source;
+    }
+
+    // find the portion of "source" that is perpendicular to "basis"
+    const vec3 perp = perpendicularComponent(source, basis);
+
+    // normalize that perpendicular
+    const vec3 unitPerp = normalize(perp);
+
+    // construct a new vector whose length equals the source vector,
+    // and lies on the intersection of a plane (formed the source and
+    // basis vectors) and a cone (whose axis is "basis" and whose
+    // angle corresponds to cosineOfConeAngle)
+    float perpDist = sqrt(1 - (cosineOfConeAngle * cosineOfConeAngle));
+    vec3 c0 = basis * cosineOfConeAngle;
+    vec3 c1 = unitPerp * perpDist;
+    return (c0 + c1) * sourceLength;
+}
+
+__device__
+vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
+{
+	const float maxAdjustedSpeed = 0.2f * MAX_SPEED;
+	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0))
+	{
+		return force;
+	}
+	else 
+	{
+		const float range = length(my_vel) / maxAdjustedSpeed;
+		const float cosine = utilityCore::interpolate(pow(range, 20), 1.0f, -1.0f);
+		return limitMaxDeviationAngle(force, cosine, normalize(my_vel));
+	}
+}
