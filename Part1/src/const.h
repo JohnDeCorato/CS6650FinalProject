@@ -9,8 +9,11 @@
 #define STAR_MASS 5e10
 #define SCENE_SCALE 1e2 //size of the height map in simulation space
 
+// OPENSTEER Library Constants
 #define AVOID_RADIUS .1
 #define MAX_SPEED 1
+#define MAX_FORCE 1
+#define AGENT_MASS 1.0f
 
 #define BLOCK_SIDE_SIZE 16
 #define BLOCK_SIZE (BLOCK_SIDE_SIZE*BLOCK_SIDE_SIZE)

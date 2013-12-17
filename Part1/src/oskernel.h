@@ -33,6 +33,6 @@ __device__
 float computeNearestApproachPositions(glm::vec3 my_pos, glm::vec3 my_vel, glm::vec3 their_pos, glm::vec3 their_vel, float time);
 
 __device__
-glm::vec3 adjustRowSteeringForce(glm::vec3 my_pos, glm::vec3 my_vel, glm::vec3 force);
+void applySteeringForce(glm::vec3 my_pos, glm::vec3 my_vel, glm::vec3 force, float dt);
 
 #endif

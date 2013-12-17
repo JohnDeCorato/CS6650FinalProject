@@ -8,6 +8,18 @@
 
 using namespace glm;
 
+// Utility Functions for vec3s for opensteer
+__device__
+vec3 truncateLength(vec3 inVec, float maxLength)
+{
+	float len = length(inVec);
+	if (len <= maxLength)
+		return inVec;
+	else
+		return inVec * maxLength / len;
+}
+
+
 // OpenSteer Device Code
 __device__
 vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec4 my_target)
@@ -109,20 +121,20 @@ vec3 steerToAvoidCloseNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 th
 }
 
 __device__
-vec3 parallelComponent (const vec3 source, const vec3 unitBasis)
+vec3 parallelComponent(const vec3 source, const vec3 unitBasis)
 {
     const float projection = dot(source, unitBasis);
     return unitBasis * projection;
 }
 
 __device__
-vec3 perpendicularComponent (const vec3 source, const vec3 unitBasis)
+vec3 perpendicularComponent(const vec3 source, const vec3 unitBasis)
 {
 	return source - parallelComponent(source, unitBasis);
 }
 
 __device__
-vec3 limitDeviationAngleUtility (const bool insideOrOutside,
+vec3 limitDeviationAngleUtility(const bool insideOrOutside,
                                           vec3& source,
                                           const float cosineOfConeAngle,
                                           vec3& basis)
@@ -166,6 +178,18 @@ vec3 limitDeviationAngleUtility (const bool insideOrOutside,
 }
 
 __device__
+vec3 limitMaxDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& basis)
+{
+	return limitDeviationAngleUtility(true, source, cosineOfConeAngle, basis);
+}
+
+__device__
+vec3 limitMinDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& basis)
+{
+	return limitDeviationAngleUtility(false, source, cosineOfConeAngle, basis);
+}
+
+__device__
 vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
 {
 	const float maxAdjustedSpeed = 0.2f * MAX_SPEED;
@@ -176,7 +200,20 @@ vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
 	else 
 	{
 		const float range = length(my_vel) / maxAdjustedSpeed;
-		const float cosine = utilityCore::interpolate(pow(range, 20), 1.0f, -1.0f);
+		const float cosine = 1.0 + -2.0 * pow(range, 20);
 		return limitMaxDeviationAngle(force, cosine, normalize(my_vel));
 	}
 }
+
+__device__
+void applySteeringForce(vec3 my_pos, vec3 my_vel, vec3 force, float dt)
+{
+	vec3 adjustedForce = adjustRawSteeringForce(my_pos, my_vel, force);
+	vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
+
+	vec3 newAccel = clippedForce / AGENT_MASS;
+
+	my_vel += newAccel * dt;
+	my_pos += my_vel * dt; 
+}
+
