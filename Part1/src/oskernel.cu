@@ -25,8 +25,8 @@ __device__
 vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec4 my_target)
 {
 	vec4 t = (my_target - my_pos);
-	vec3 vel = vec3(t.x,t.y,t.z) - my_vel;
-	return vel;
+	vec3 force = vec3(t.x,t.y,t.z) - my_vel;
+	return force;
 }
 
 __device__
