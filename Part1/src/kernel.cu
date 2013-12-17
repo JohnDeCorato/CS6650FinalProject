@@ -425,6 +425,9 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
     }
 }
 
+//////////////////////////
+// OPENSTEER FUNCTIONS
+//////////////////////////
 // Called at first to reset the acceleration for this frame
 // Accelerates towards the target
 __global__
@@ -481,6 +484,10 @@ void updateVelocity(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3
 		applySteeringForce(glm::vec3(pos[index]), vel[index], accel[index], dt);
 	}
 }
+////////////////////////////
+// END OPENSTEER FUNCTIONS
+////////////////////////////
+
 
 //Update the vertex buffer object
 //(The VBO is where OpenGL looks for the positions for the planets)
