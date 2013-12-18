@@ -1,4 +1,4 @@
-#define N_FOR_VIS (100*100)
+#define N_FOR_VIS (200*200)
 #define DT .2
 #define VISUALIZE 1
 #define SOFTENING_FACTOR .0001

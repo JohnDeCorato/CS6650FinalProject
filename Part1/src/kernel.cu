@@ -88,7 +88,7 @@ void generateRandomPosArray(int time, int N, glm::vec4 * arr, float scale, float
         glm::vec3 rand = scale*(generateRandomNumberFromThread(time, index)-0.5f);
         arr[index].x = rand.x;
         arr[index].y = rand.y;
-        arr[index].z = 0.0f;//rand.z;
+        arr[index].z = 0.0f;//rand.z > 0 ? 1.0f : -1.0f;
         arr[index].w = mass;
     }
 }
@@ -121,7 +121,7 @@ void generateRandomVelArray(int time, int N, glm::vec3 * arr, float scale)
         glm::vec3 rand = scale*(generateRandomNumberFromThread(time, index) - 0.5f);
         arr[index].x = rand.x;
         arr[index].y = rand.y;
-        arr[index].z = 0.0;//rand.z;
+        arr[index].z = 0;
     }
 }
 
@@ -157,6 +157,7 @@ glm::vec3 naiveSeparation(glm::vec4 us, glm::vec4 them)
 	
 	float dist = glm::length(us - them);
 	float force_mag = (G * planetMass) / (dist * dist * dist + SOFTENING_FACTOR);
+	force_mag *= dist < .1f ? 20.0f : 0.0f;
 	glm::vec3 result_force(force_mag*(us-them));
 
     return result_force;
@@ -209,7 +210,6 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
         vel[index]   += acc[index]   * dt;
         pos[index].x += vel[index].x * dt;
         pos[index].y += vel[index].y * dt;
-        pos[index].z += vel[index].z * dt;
     }
 }
 
@@ -262,17 +262,27 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 			 
 			 // If the other agent is in sight (dot > 0)
 			 if (glm::dot(d_vel[this_index], (glm::vec3)(d_pos[other_index] - d_pos[this_index]))) {
+				 
+				 
+				 // Steer headings only if same type
+				 if (d_pos[this_index].z == d_pos[other_index].z) {
+					totalInChunk++;
+					avgVel.x += d_vel[other_index].x;
+					avgVel.y += d_vel[other_index].y;
+				 }
 
-				 totalInChunk++;
+				 glm::vec3 acc = glm::vec3(0.0f);
+				 
+				 // attract only if same type
+				 if (d_pos[this_index].z == d_pos[other_index].z) {
+					 acc += naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
+				 }
 
-				 avgVel.x += d_vel[other_index].x;
-				 avgVel.y += d_vel[other_index].y;
-				 glm::vec3 acc = naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
-				 acc += 4.0f*naiveSeparation(d_pos[this_index], d_pos[other_index]);
+				 // separate always
+				 acc += naiveSeparation(d_pos[this_index], d_pos[other_index]);
 
 				 d_acc[this_index].x += acc.x * dt;
 				 d_acc[this_index].y += acc.y * dt;
-				 d_acc[this_index].z += acc.z * dt;
 			 } else {
 
 			 }
