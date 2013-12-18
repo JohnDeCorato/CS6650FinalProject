@@ -25,9 +25,9 @@ vec3 truncateLength(vec3 inVec, float maxLength)
 
 // OpenSteer Device Code
 __device__
-vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec4 my_target)
+vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec3 my_target)
 {
-	vec4 t = (my_target - my_pos);
+	vec3 t = (my_target - vec3(my_pos));
 	vec3 force = vec3(t.x,t.y,t.z) - my_vel;
 	return force;
 }
@@ -236,6 +236,7 @@ const float scene_scale = SCENE_SCALE; //size of the height map in simulation sp
 glm::vec4 * dev_pos;
 glm::vec3 * dev_vel;
 glm::vec3 * dev_acc;
+glm::vec3 * dev_targets;
 glm::vec4 *dev_pos_buffer; // used to double buffer when sorting
 
 void checkCUDAError(const char *msg, int line = -1)
@@ -337,6 +338,31 @@ void generateRandomVelArray(int time, int N, glm::vec3 * arr, float scale)
     }
 }
 
+//Generate positions and targets
+__global__
+void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCol)
+{
+	
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if(index < N)
+	{
+		int right = index % 2;
+		int i = index / 2;
+		int row = i / numBodiesPerCol;
+		int column = (i - row * numBodiesPerCol);
+		int numCols = (N/2 + numBodiesPerCol - 1)/numBodiesPerCol;
+		
+		if (!right) {
+			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
+			target[index] = vec3(LINES_MIDDLE_SEP + (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+		}
+		else {
+			pos[index] = vec4(LINES_MIDDLE_SEP + row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
+			target[index] = vec3(-LINES_MIDDLE_SEP - (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+		}
+	}
+}
+
 //TODO: Determine force between two bodies
 __device__
 glm::vec3 calculateAcceleration(glm::vec4 us, glm::vec4 them)
@@ -431,7 +457,7 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
 // Called at first to reset the acceleration for this frame
 // Accelerates towards the target
 __global__
-void getAccelForTarget(int N, glm::vec4 * pos, glm::vec4 * targets, glm::vec3 * vel, glm::vec3 *accel)
+void getAccelForTarget(int N, glm::vec4 * pos, glm::vec3 * targets, glm::vec3 * vel, glm::vec3 *accel)
 {
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if(index < N)
@@ -441,7 +467,7 @@ void getAccelForTarget(int N, glm::vec4 * pos, glm::vec4 * targets, glm::vec3 * 
 }
 
 // The N^2 version of the neighbors update
-// TODO: The matrix version
+// TODO: The matrix version (and a simple discrete lookahead version?)
 __global__
 void getAvoidanceAccel(int N, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * accel)
 {
@@ -691,8 +717,10 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_acc, N*sizeof(glm::vec3));
     checkCUDAErrorWithLine("Kernel failed!");
+	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
 
-    generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
+    //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
     generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
@@ -724,12 +752,12 @@ void cudaNBodyUpdateWrapper(float dt)
 	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
 
 	// Average forces from the 16 objects spacially around you
-	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
+	//updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
     cudaThreadSynchronize();
 
 	// Update positions of all particles!
-	updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+	//updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
     checkCUDAErrorWithLine("Kernel failed!");
 
 	// Update the position buffer with the new positions

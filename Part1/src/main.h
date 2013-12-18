@@ -44,6 +44,7 @@ GLuint planeIBO = (GLuint)NULL;
 GLuint planetVBO = (GLuint)NULL;
 GLuint planetInBO = (GLuint)NULL;
 GLuint planetIBO = (GLuint)NULL;
+GLuint targetVBO = (GLuint)NULL;
 GLuint displayImage;
 GLuint program[2];
 

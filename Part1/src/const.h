@@ -1,4 +1,4 @@
-#define N_FOR_VIS (100*100)
+#define N_FOR_VIS (100)
 #define DT .2
 #define VISUALIZE 1
 #define SOFTENING_FACTOR .0001
@@ -10,10 +10,16 @@
 #define SCENE_SCALE 1e2 //size of the height map in simulation space
 
 // OPENSTEER Library Constants
-#define AVOID_RADIUS .1
+#define AVOID_RADIUS 2
+#define OBJECT_RADIUS 0
 #define MAX_SPEED 1
 #define MAX_FORCE 1
 #define AGENT_MASS 1.0f
+
+// AGENT STARTING POSITION PARAMETERS
+#define LINES_MIDDLE_SEP 10.0
+#define LINES_ROW_SEP 3.0
+#define LINES_COL_SEP 3.0
 
 #define BLOCK_SIDE_SIZE 16
 #define BLOCK_SIZE (BLOCK_SIDE_SIZE*BLOCK_SIDE_SIZE)

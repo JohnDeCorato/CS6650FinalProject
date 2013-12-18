@@ -314,6 +314,7 @@ void initVAO(void)
     glGenBuffers(1, &planeTBO);
     glGenBuffers(1, &planeIBO);
     glGenBuffers(1, &planetVBO);
+	glGenBuffers(1, &targetVBO);
 	glGenBuffers(1, &planetInBO);
     glGenBuffers(1, &planetIBO);
     
@@ -328,6 +329,9 @@ void initVAO(void)
 
     glBindBuffer(GL_ARRAY_BUFFER, planetVBO);
     glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS+1)*sizeof(GLfloat), bodies, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, targetVBO);
+	glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS+1)*sizeof(GLfloat), bodies, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, planetInBO);
 	glBufferData(GL_ARRAY_BUFFER, (N_FOR_VIS+1)*sizeof(GLint), bind, GL_DYNAMIC_DRAW);
