@@ -192,10 +192,10 @@ vec3 limitMinDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& b
 }
 
 __device__
-vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
+vec3 adjustRawSteeringForce(vec3 my_vel, vec3 force)
 {
 	const float maxAdjustedSpeed = 0.2f * MAX_SPEED;
-	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0))
+	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0) || length(my_vel) == 0)
 	{
 		return force;
 	}
@@ -205,18 +205,6 @@ vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
 		const float cosine = 1.0 + -2.0 * pow(range, 20);
 		return limitMaxDeviationAngle(force, cosine, normalize(my_vel));
 	}
-}
-
-__device__
-void applySteeringForce(vec3 my_pos, vec3 my_vel, vec3 force, float dt)
-{
-	vec3 adjustedForce = adjustRawSteeringForce(my_pos, my_vel, force);
-	vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
-
-	vec3 newAccel = clippedForce / AGENT_MASS;
-
-	my_vel += newAccel * dt;
-	my_pos += my_vel * dt; 
 }
 
 // A device memory boolean that we use to tell if a bubble pass swaps any elements
@@ -340,7 +328,7 @@ void generateRandomVelArray(int time, int N, glm::vec3 * arr, float scale)
 
 //Generate positions and targets
 __global__
-void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCol)
+void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, vec3 * vel, int numBodiesPerCol)
 {
 	
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -353,12 +341,14 @@ void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCo
 		int numCols = (N/2 + numBodiesPerCol - 1)/numBodiesPerCol;
 		
 		if (!right) {
-			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
+			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 0);
 			target[index] = vec3(LINES_MIDDLE_SEP + (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			vel[index] = vec3(3,0,0);
 		}
 		else {
 			pos[index] = vec4(LINES_MIDDLE_SEP + row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
 			target[index] = vec3(-LINES_MIDDLE_SEP - (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			vel[index] = vec3(-3,0,0);
 		}
 	}
 }
@@ -507,7 +497,13 @@ void updateVelocity(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if (index < N)
 	{
-		applySteeringForce(glm::vec3(pos[index]), vel[index], accel[index], dt);
+		vec3 adjustedForce = adjustRawSteeringForce(vel[index], accel[index]);
+		vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
+
+		vec3 newAccel = clippedForce / AGENT_MASS;
+
+		vel[index] += newAccel * dt;
+		pos[index] += vec4(vel[index]*dt,0);
 	}
 }
 ////////////////////////////
@@ -719,10 +715,10 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
 	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
 
-	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
+	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, dev_vel, 10);
     //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
-    generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
+    //generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
 
 	// copy the new positions into the position buffer as well
@@ -731,7 +727,7 @@ void initCuda(int N)
     cudaThreadSynchronize();
 
 	// Initialize the matrix as sorted
-	spacialSort(N, dev_pos, dev_vel, dev_pos_buffer, -1);
+	//spacialSort(N, dev_pos, dev_vel, dev_pos_buffer, -1);
 }
 
 void cudaNBodyUpdateWrapper(float dt)
@@ -749,13 +745,22 @@ void cudaNBodyUpdateWrapper(float dt)
 	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	// Sort the 2Darray of positions spatially
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
-	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
+	//spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
 
 	/////////////////////////////////////////////////////////////////////////////
 	// N^2 VERSION OF CROWDS
 	/////////////////////////////////////////////////////////////////////////////
+	getAccelForTarget<<<gridLength, blockLength>>>(numObjects, dev_pos, dev_targets, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
 
+	//getAvoidanceAccel<<<gridLength, blockLength>>>(numObjects, dev_pos, dev_vel, dev_acc);
+	//checkCUDAErrorWithLine("Kernel failed!");
+	//cudaThreadSynchronize();
 
+	updateVelocity<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	//cudaThreadSynchronize();
 
 	// Average forces from the 16 objects spacially around you
 	//updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
