@@ -7,6 +7,218 @@
 #include "const.h"
 #include "device_functions.h"
 
+using namespace glm;
+
+// ALL OF THE OPENSTEER STUFF
+
+// Utility Functions for vec3s for opensteer
+__device__
+vec3 truncateLength(vec3 inVec, float maxLength)
+{
+	float len = length(inVec);
+	if (len <= maxLength)
+		return inVec;
+	else
+		return inVec * maxLength / len;
+}
+
+
+// OpenSteer Device Code
+__device__
+vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec3 my_target)
+{
+	vec3 t = (my_target - vec3(my_pos));
+	vec3 force = vec3(t.x,t.y,t.z) - my_vel;
+	return force;
+}
+
+__device__
+float predictNearestApproachTime(glm::vec3 my_pos, glm::vec3 my_vel, glm::vec3 their_pos, glm::vec3 their_vel)
+{
+	const glm::vec3 relVelocity = their_vel - my_vel;
+	const float relSpeed = relVelocity.length();
+
+	if (relSpeed == 0) return 0;
+
+	const glm::vec3 relTangent = relVelocity / relSpeed;
+
+	const glm::vec3 relPosition = my_pos - their_pos;
+	const float projection = relTangent.x * relPosition.x + relTangent.y * relPosition.y + relTangent.z * relPosition.z;
+
+	return projection / relSpeed;
+}
+
+__device__
+float computeNearestApproachPositions(glm::vec3 my_pos, glm::vec3 my_vel, glm::vec3 their_pos, glm::vec3 their_vel, float time)
+{
+	return glm::distance(my_pos + my_vel * time, their_pos + their_vel * time);
+}
+
+__device__
+// largest magnitude is closest. Only use that one for avoidance
+vec3 steerToAvoidNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float minTime)
+{
+	const float collisionDangerThreshold = OBJECT_RADIUS * 2;
+	const float time = predictNearestApproachTime(my_pos, my_vel, their_pos, their_vel);
+	float steer = 0;
+	if (time >= 0 && time < minTime)
+	{
+		if (computeNearestApproachPositions(my_pos, my_vel, their_pos, their_vel, time) < collisionDangerThreshold)
+		{
+			float parallelness = dot(normalize(my_vel), normalize(their_vel));
+			if (parallelness < -0.707f)
+			{
+				vec3 offset = their_pos - my_pos + their_vel * time;
+				float sideDot = dot(offset, normalize(vec3(my_vel.y, -my_vel.x, 0)));
+				steer = sideDot > 0 ? -1.0f : 1.0f;
+			}
+			else
+			{
+				if (parallelness > 0.707)
+				{
+					vec3 offset = their_pos - my_pos;
+					float sideDot = dot(offset, normalize(vec3(my_vel.y, -my_vel.x, 0)));
+					steer = sideDot > 0 ? -1.0f : 1.0f;
+				}
+				else
+				{
+					if (length(their_vel) <= length(my_vel))
+					{ 
+						float sideDot = dot(their_vel, normalize(vec3(my_vel.y, -my_vel.x, 0)));
+						steer = sideDot > 0 ? -1.0f : 1.0f;
+					}
+				}
+			}
+		}
+	}
+	return steer * normalize(vec3(my_vel.y, -my_vel.x, 0)) / time;
+}
+
+__device__
+bool inBoidNeighborhood(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float minDist, float maxDist, float cosMaxAngle)
+{
+	vec3 offset = their_pos - my_pos;
+	float dist = length(offset);
+	if (dist < minDist)
+		return true;
+	else
+	{
+		if (dist > maxDist)
+			return false;
+		float forwardness = dot(normalize(my_vel), normalize(offset));
+		return forwardness > cosMaxAngle;
+	}
+}
+
+__device__
+vec3 steerToAvoidCloseNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float maxDist, float cosMaxAngle)
+{
+	if (inBoidNeighborhood(my_pos, my_vel, their_pos, their_vel, 0.003, maxDist, cosMaxAngle))
+	{
+		vec3 offset = their_pos - my_pos;
+		float dist = length(offset);
+		return offset / (-dist * dist);
+	}
+	return vec3(0.0);
+}
+
+__device__
+vec3 parallelComponent(const vec3 source, const vec3 unitBasis)
+{
+    const float projection = dot(source, unitBasis);
+    return unitBasis * projection;
+}
+
+__device__
+vec3 perpendicularComponent(const vec3 source, const vec3 unitBasis)
+{
+	return source - parallelComponent(source, unitBasis);
+}
+
+__device__
+vec3 limitDeviationAngleUtility(const bool insideOrOutside,
+                                          vec3& source,
+                                          const float cosineOfConeAngle,
+                                          vec3& basis)
+{
+    // immediately return zero length input vectors
+    float sourceLength = length(source);
+    if (sourceLength == 0) return source;
+
+    // measure the angular diviation of "source" from "basis"
+    vec3 direction = source / sourceLength;
+    float cosineOfSourceAngle = dot(direction, basis);
+
+    // Simply return "source" if it already meets the angle criteria.
+    // (note: we hope this top "if" gets compiled out since the flag
+    // is a constant when the function is inlined into its caller)
+    if (insideOrOutside)
+    {
+		// source vector is already inside the cone, just return it
+		if (cosineOfSourceAngle >= cosineOfConeAngle) return source;
+    }
+    else
+    {
+		// source vector is already outside the cone, just return it
+		if (cosineOfSourceAngle <= cosineOfConeAngle) return source;
+    }
+
+    // find the portion of "source" that is perpendicular to "basis"
+    const vec3 perp = perpendicularComponent(source, basis);
+
+    // normalize that perpendicular
+    const vec3 unitPerp = normalize(perp);
+
+    // construct a new vector whose length equals the source vector,
+    // and lies on the intersection of a plane (formed the source and
+    // basis vectors) and a cone (whose axis is "basis" and whose
+    // angle corresponds to cosineOfConeAngle)
+    float perpDist = sqrt(1 - (cosineOfConeAngle * cosineOfConeAngle));
+    vec3 c0 = basis * cosineOfConeAngle;
+    vec3 c1 = unitPerp * perpDist;
+    return (c0 + c1) * sourceLength;
+}
+
+__device__
+vec3 limitMaxDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& basis)
+{
+	return limitDeviationAngleUtility(true, source, cosineOfConeAngle, basis);
+}
+
+__device__
+vec3 limitMinDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& basis)
+{
+	return limitDeviationAngleUtility(false, source, cosineOfConeAngle, basis);
+}
+
+__device__
+vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
+{
+	const float maxAdjustedSpeed = 0.2f * MAX_SPEED;
+	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0))
+	{
+		return force;
+	}
+	else 
+	{
+		const float range = length(my_vel) / maxAdjustedSpeed;
+		const float cosine = 1.0 + -2.0 * pow(range, 20);
+		return limitMaxDeviationAngle(force, cosine, normalize(my_vel));
+	}
+}
+
+__device__
+void applySteeringForce(vec3 my_pos, vec3 my_vel, vec3 force, float dt)
+{
+	vec3 adjustedForce = adjustRawSteeringForce(my_pos, my_vel, force);
+	vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
+
+	vec3 newAccel = clippedForce / AGENT_MASS;
+
+	my_vel += newAccel * dt;
+	my_pos += my_vel * dt; 
+}
+
 // A device memory boolean that we use to tell if a bubble pass swaps any elements
 __device__ bool d_swappedAny = false;
 
@@ -24,6 +236,7 @@ const float scene_scale = SCENE_SCALE; //size of the height map in simulation sp
 glm::vec4 * dev_pos;
 glm::vec3 * dev_vel;
 glm::vec3 * dev_acc;
+glm::vec3 * dev_targets;
 glm::vec4 *dev_pos_buffer; // used to double buffer when sorting
 
 void checkCUDAError(const char *msg, int line = -1)
@@ -125,6 +338,31 @@ void generateRandomVelArray(int time, int N, glm::vec3 * arr, float scale)
     }
 }
 
+//Generate positions and targets
+__global__
+void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCol)
+{
+	
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if(index < N)
+	{
+		int right = index % 2;
+		int i = index / 2;
+		int row = i / numBodiesPerCol;
+		int column = (i - row * numBodiesPerCol);
+		int numCols = (N/2 + numBodiesPerCol - 1)/numBodiesPerCol;
+		
+		if (!right) {
+			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
+			target[index] = vec3(LINES_MIDDLE_SEP + (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+		}
+		else {
+			pos[index] = vec4(LINES_MIDDLE_SEP + row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
+			target[index] = vec3(-LINES_MIDDLE_SEP - (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+		}
+	}
+}
+
 //TODO: Determine force between two bodies
 __device__
 glm::vec3 calculateAcceleration(glm::vec4 us, glm::vec4 them)
@@ -212,6 +450,70 @@ void updateS(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acc)
         pos[index].y += vel[index].y * dt;
     }
 }
+
+//////////////////////////
+// OPENSTEER FUNCTIONS
+//////////////////////////
+// Called at first to reset the acceleration for this frame
+// Accelerates towards the target
+__global__
+void getAccelForTarget(int N, glm::vec4 * pos, glm::vec3 * targets, glm::vec3 * vel, glm::vec3 *accel)
+{
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if(index < N)
+	{
+		accel[index] = steerForSeek(pos[index], vel[index], targets[index]);
+	}
+}
+
+// The N^2 version of the neighbors update
+// TODO: The matrix version (and a simple discrete lookahead version?)
+__global__
+void getAvoidanceAccel(int N, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * accel)
+{
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if (index < N)
+	{
+		glm::vec3 avoidance = glm::vec3(0);
+		for (int i = 0; i < N; i++) 
+		{
+			if (i != index) 
+			{
+				avoidance += steerToAvoidCloseNeighbor(glm::vec3(pos[index]), vel[index],
+					glm::vec3(pos[i]), vel[i], 5.0, 0.5);
+			}
+		}
+		if (glm::length(avoidance) != 0)
+			accel[index] += avoidance;
+		else {
+			for (int i = 0; i < N; i++) {
+				if (i != index) {
+					glm::vec3 temp = steerToAvoidNeighbor(glm::vec3(pos[index]), vel[index], vec3(pos[i]), vel[i], 0);
+					if (glm::length(temp) > glm::length(avoidance))
+						avoidance = temp;
+				}
+			}
+
+			accel[index] += glm::normalize(avoidance);
+		}
+
+	}
+}
+
+//Update the velocity with the steering force
+__global__
+void updateVelocity(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * accel) 
+{
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if (index < N)
+	{
+		applySteeringForce(glm::vec3(pos[index]), vel[index], accel[index], dt);
+	}
+}
+////////////////////////////
+// END OPENSTEER FUNCTIONS
+////////////////////////////
+
 
 //Update the vertex buffer object
 //(The VBO is where OpenGL looks for the positions for the planets)
@@ -425,8 +727,10 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_acc, N*sizeof(glm::vec3));
     checkCUDAErrorWithLine("Kernel failed!");
+	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
 
-    generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
+    //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
     generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
@@ -457,14 +761,20 @@ void cudaNBodyUpdateWrapper(float dt)
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
 	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
 
+	/////////////////////////////////////////////////////////////////////////////
+	// N^2 VERSION OF CROWDS
+	/////////////////////////////////////////////////////////////////////////////
+
+
+
 	// Average forces from the 16 objects spacially around you
-	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
-	checkCUDAErrorWithLine("Kernel failed!");
-    cudaThreadSynchronize();
+	//updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
+	//checkCUDAErrorWithLine("Kernel failed!");
+    //cudaThreadSynchronize();
 
 	// Update positions of all particles!
-	updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
-    checkCUDAErrorWithLine("Kernel failed!");
+	//updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+    //checkCUDAErrorWithLine("Kernel failed!");
 
 	// Update the position buffer with the new positions
 	
