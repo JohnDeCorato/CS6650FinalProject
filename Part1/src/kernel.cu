@@ -58,12 +58,12 @@ __device__
 // largest magnitude is closest. Only use that one for avoidance
 vec3 steerToAvoidNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float minTime)
 {
-	const float collisionDangerThreshold = AVOID_RADIUS * 2;
+	const float collisionDangerThreshold = OBJECT_RADIUS * 2;
 	const float time = predictNearestApproachTime(my_pos, my_vel, their_pos, their_vel);
 	float steer = 0;
 	if (time >= 0 && time < minTime)
 	{
-		if (computeNearestApproachPositions(my_pos, my_vel, their_pos, their_vel, time))
+		if (computeNearestApproachPositions(my_pos, my_vel, their_pos, their_vel, time) < collisionDangerThreshold)
 		{
 			float parallelness = dot(normalize(my_vel), normalize(their_vel));
 			if (parallelness < -0.707f)
@@ -751,14 +751,20 @@ void cudaNBodyUpdateWrapper(float dt)
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
 	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
 
+	/////////////////////////////////////////////////////////////////////////////
+	// N^2 VERSION OF CROWDS
+	/////////////////////////////////////////////////////////////////////////////
+
+
+
 	// Average forces from the 16 objects spacially around you
 	//updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
-	checkCUDAErrorWithLine("Kernel failed!");
-    cudaThreadSynchronize();
+	//checkCUDAErrorWithLine("Kernel failed!");
+    //cudaThreadSynchronize();
 
 	// Update positions of all particles!
 	//updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
-    checkCUDAErrorWithLine("Kernel failed!");
+    //checkCUDAErrorWithLine("Kernel failed!");
 
 	// Update the position buffer with the new positions
 	

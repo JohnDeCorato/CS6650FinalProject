@@ -11,7 +11,7 @@
 
 // OPENSTEER Library Constants
 #define AVOID_RADIUS 2
-#define OBJECT_RADIUS 0
+#define OBJECT_RADIUS 1
 #define MAX_SPEED 1
 #define MAX_FORCE 1
 #define AGENT_MASS 1.0f
