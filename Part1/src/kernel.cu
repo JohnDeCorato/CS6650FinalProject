@@ -16,7 +16,7 @@ __device__
 vec3 truncateLength(vec3 inVec, float maxLength)
 {
 	float len = length(inVec);
-	if (len <= maxLength)
+	if (len <= maxLength || len == 0)
 		return inVec;
 	else
 		return inVec * maxLength / len;
@@ -28,7 +28,7 @@ __device__
 vec3 steerForSeek(glm::vec4 my_pos, glm::vec3 my_vel, glm::vec3 my_target)
 {
 	vec3 t = (my_target - vec3(my_pos));
-	vec3 force = vec3(t.x,t.y,t.z) - my_vel;
+	vec3 force = t - my_vel;
 	return force;
 }
 
@@ -105,21 +105,11 @@ bool inBoidNeighborhood(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel
 	{
 		if (dist > maxDist)
 			return false;
+		if (length(my_vel) == 0)
+			return false;
 		float forwardness = dot(normalize(my_vel), normalize(offset));
 		return forwardness > cosMaxAngle;
 	}
-}
-
-__device__
-vec3 steerToAvoidCloseNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float maxDist, float cosMaxAngle)
-{
-	if (inBoidNeighborhood(my_pos, my_vel, their_pos, their_vel, 0.003, maxDist, cosMaxAngle))
-	{
-		vec3 offset = their_pos - my_pos;
-		float dist = length(offset);
-		return offset / (-dist * dist);
-	}
-	return vec3(0.0);
 }
 
 __device__
@@ -133,6 +123,18 @@ __device__
 vec3 perpendicularComponent(const vec3 source, const vec3 unitBasis)
 {
 	return source - parallelComponent(source, unitBasis);
+}
+
+__device__
+vec3 steerToAvoidCloseNeighbor(vec3 my_pos, vec3 my_vel, vec3 their_pos, vec3 their_vel, float minSepDist)
+{
+	float minCenterToCenter = 2 * OBJECT_RADIUS + minSepDist;
+	vec3 offset = their_pos - my_pos;
+	float currentDist = length(offset);
+	if (currentDist < minCenterToCenter) {
+		return perpendicularComponent(-offset, normalize(my_vel));
+	}
+	return vec3(0.0);
 }
 
 __device__
@@ -192,10 +194,10 @@ vec3 limitMinDeviationAngle(vec3& source, const float cosineOfConeAngle, vec3& b
 }
 
 __device__
-vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
+vec3 adjustRawSteeringForce(vec3 my_vel, vec3 force)
 {
 	const float maxAdjustedSpeed = 0.2f * MAX_SPEED;
-	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0))
+	if (length(my_vel) > maxAdjustedSpeed || force == vec3(0) || length(my_vel) == 0)
 	{
 		return force;
 	}
@@ -205,18 +207,6 @@ vec3 adjustRawSteeringForce(vec3 my_pos, vec3 my_vel, vec3 force)
 		const float cosine = 1.0 + -2.0 * pow(range, 20);
 		return limitMaxDeviationAngle(force, cosine, normalize(my_vel));
 	}
-}
-
-__device__
-void applySteeringForce(vec3 my_pos, vec3 my_vel, vec3 force, float dt)
-{
-	vec3 adjustedForce = adjustRawSteeringForce(my_pos, my_vel, force);
-	vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
-
-	vec3 newAccel = clippedForce / AGENT_MASS;
-
-	my_vel += newAccel * dt;
-	my_pos += my_vel * dt; 
 }
 
 // A device memory boolean that we use to tell if a bubble pass swaps any elements
@@ -340,7 +330,7 @@ void generateRandomVelArray(int time, int N, glm::vec3 * arr, float scale)
 
 //Generate positions and targets
 __global__
-void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCol)
+void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * tar, vec3 * vel, int numBodiesPerCol)
 {
 	
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -350,15 +340,17 @@ void generateTwoLinesCrowds(int N, vec4 * pos, vec3 * target, int numBodiesPerCo
 		int i = index / 2;
 		int row = i / numBodiesPerCol;
 		int column = (i - row * numBodiesPerCol);
-		int numCols = (N/2 + numBodiesPerCol - 1)/numBodiesPerCol;
+		int numCols = (N/2)/numBodiesPerCol;
 		
 		if (!right) {
-			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
-			target[index] = vec3(LINES_MIDDLE_SEP + (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			pos[index] = vec4(-LINES_MIDDLE_SEP - row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 0);
+			tar[index] = vec3(LINES_MIDDLE_SEP + (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			vel[index] = vec3(0,1,0);
 		}
 		else {
 			pos[index] = vec4(LINES_MIDDLE_SEP + row * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0, 1);
-			target[index] = vec3(-LINES_MIDDLE_SEP - (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			tar[index] = vec3(-LINES_MIDDLE_SEP - (numCols - 1 - row) * LINES_ROW_SEP, LINES_COL_SEP * (column - numBodiesPerCol / 2), 0);
+			vel[index] = vec3(0,-1,0);
 		}
 	}
 }
@@ -469,22 +461,23 @@ void getAccelForTarget(int N, glm::vec4 * pos, glm::vec3 * targets, glm::vec3 * 
 // The N^2 version of the neighbors update
 // TODO: The matrix version (and a simple discrete lookahead version?)
 __global__
-void getAvoidanceAccel(int N, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * accel)
+void getAvoidanceAccel(int N, vec4 * pos, vec3 * vel, vec3 * accel)
 {
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if (index < N)
 	{
-		glm::vec3 avoidance = glm::vec3(0);
+		vec3 avoidance = vec3(0);
 		for (int i = 0; i < N; i++) 
 		{
 			if (i != index) 
 			{
-				avoidance += steerToAvoidCloseNeighbor(glm::vec3(pos[index]), vel[index],
-					glm::vec3(pos[i]), vel[i], 5.0, 0.5);
+				avoidance += steerToAvoidCloseNeighbor(vec3(pos[index]), vel[index],
+					vec3(pos[i]), vel[i], AVOID_RADIUS);
 			}
 		}
-		if (glm::length(avoidance) != 0)
-			accel[index] += avoidance;
+		if (length(avoidance) != 0) {
+			accel[index] += avoidance*50.0f;
+		}
 		else {
 			for (int i = 0; i < N; i++) {
 				if (i != index) {
@@ -494,7 +487,8 @@ void getAvoidanceAccel(int N, glm::vec4 * pos, glm::vec3 * vel, glm::vec3 * acce
 				}
 			}
 
-			accel[index] += glm::normalize(avoidance);
+			if (length(avoidance) != 0)
+				accel[index] += 10.0f * glm::normalize(avoidance);
 		}
 
 	}
@@ -507,7 +501,15 @@ void updateVelocity(int N, float dt, glm::vec4 * pos, glm::vec3 * vel, glm::vec3
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if (index < N)
 	{
-		applySteeringForce(glm::vec3(pos[index]), vel[index], accel[index], dt);
+		vec3 adjustedForce = adjustRawSteeringForce(vel[index], accel[index]);
+		vec3 clippedForce = truncateLength(adjustedForce, MAX_FORCE);
+
+		vec3 newAccel = clippedForce / AGENT_MASS;
+
+		vel[index] += newAccel * dt;
+
+		vel[index] = truncateLength(vel[index], MAX_SPEED);
+		pos[index] += vec4(vel[index]*dt,0);
 	}
 }
 ////////////////////////////
@@ -745,16 +747,18 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
 	cudaMalloc((void**)&dev_pos_buffer, N*sizeof(glm::vec4));
     checkCUDAErrorWithLine("Kernel failed!");
+	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
+	checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_vel, N*sizeof(glm::vec3));
     checkCUDAErrorWithLine("Kernel failed!");
     cudaMalloc((void**)&dev_acc, N*sizeof(glm::vec3));
     checkCUDAErrorWithLine("Kernel failed!");
-	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
+	cudaThreadSynchronize();
 
-	//generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
-    generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, dev_vel, NUM_PER_COLUMN);
+    //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
-    generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
+    //generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
 
 	// copy the new positions into the position buffer as well
@@ -763,7 +767,7 @@ void initCuda(int N)
     cudaThreadSynchronize();
 
 	// Initialize the matrix as sorted
-	spacialSort(N, dev_pos, dev_vel, dev_pos_buffer, -1);
+	//spacialSort(N, dev_pos, dev_vel, dev_pos_buffer, -1);
 }
 
 void cudaNBodyUpdateWrapper(float dt)
@@ -783,8 +787,22 @@ void cudaNBodyUpdateWrapper(float dt)
 	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	// Sort the 2Darray of positions spatially
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
-	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
-#endif
+	//spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
+
+	/////////////////////////////////////////////////////////////////////////////
+	// N^2 VERSION OF CROWDS
+	/////////////////////////////////////////////////////////////////////////////
+	getAccelForTarget<<<gridLength, blockLength>>>(numObjects, dev_pos, dev_targets, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
+
+	getAvoidanceAccel<<<gridLength, blockLength>>>(numObjects, dev_pos, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	cudaThreadSynchronize();
+
+	updateVelocity<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+	//cudaThreadSynchronize();
 
 	// Average forces from the 16 objects spacially around you
 	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
