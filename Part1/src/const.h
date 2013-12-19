@@ -1,4 +1,4 @@
-#define N_FOR_VIS (100)
+#define N_FOR_VIS (900)
 #define DT .2
 #define VISUALIZE 1
 #define SOFTENING_FACTOR .0001
@@ -14,7 +14,7 @@
 // MATRIX for matrix, NAIVE for n^2 version
 #define MATRIX 1
 #define NAIVE 2
-#define COMPARE_MODE NAIVE
+#define COMPARE_MODE MATRIX
 
 // ========
 #define BOIDS 2
@@ -24,7 +24,7 @@
 // ========
 #define COLOR_MIXED 1
 #define COLOR_DIVIDED 2
-#define COLOR_MODE COLOR_DIVIDED
+#define COLOR_MODE COLOR_MIXED
 
 #define PLANET_MASS 3e8
 #define STAR_MASS 5e10
@@ -46,7 +46,7 @@
 #define LINES_MIDDLE_SEP 100.0
 #define LINES_ROW_SEP 15.0
 #define LINES_COL_SEP 15.0
-#define NUM_PER_COLUMN 10
+#define NUM_PER_COLUMN 30
 
 #define NUM_PER_WIDTH 
 

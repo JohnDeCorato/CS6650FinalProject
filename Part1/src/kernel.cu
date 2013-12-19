@@ -479,18 +479,15 @@ void getAvoidanceAccel(int N, int sideLen, vec4 * pos, vec3 * vel, vec3 * accel)
 			accel[index] += avoidance*50.0f;
 		}
 		else {
+			// Loop through the SHELL_NUM shells of agents around this body
+#if COMPARE_MODE == MATRIX	
 			int col = index / sideLen;
 			int row = index % sideLen;
 
-			// Sum up the average vel and pos of the ones around it
-			float2 avgVel;	 avgVel.x = 0; avgVel.y = 0;
-			int totalInChunk = 0;
-
-			// Loop through the SHELL_NUM shells of agents around this body
-#if COMPARE_MODE == MATRIX
 			for (int i=-SHELL_NUM; i <= SHELL_NUM; i++) {
 				for (int j=-SHELL_NUM; j <= SHELL_NUM; j++) {
 					int other_index = getMatOffset(sideLen, i+col, j+row);
+					if (other_index < 0 || other_index >= N || index == other_index) continue;
 #elif COMPARE_MODE == NAIVE
 			{
 				for (int other_index = 0; other_index < N; other_index++) {
@@ -656,7 +653,7 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
  *			   
  */
 __global__ 
-	void iterateBubble(bool horizontal, bool odd, int sideLen, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec4 *out_d_pos_mat)
+	void iterateBubble(bool horizontal, bool odd, int sideLen, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec3 *d_targets_mat, glm::vec4 *out_d_pos_mat)
 {
 	// Get the column for the agent
 	int tidx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -696,14 +693,19 @@ __global__
 			glm::vec3 tempVel = d_vel_mat[agent1Off];
 			d_vel_mat[agent1Off] = d_vel_mat[agent2Off];
 			d_vel_mat[agent2Off] = tempVel;
-			
+
+			// swap targets too
+			glm::vec3 tempTarget = d_targets_mat[agent1Off];
+			d_targets_mat[agent1Off] = d_targets_mat[agent2Off];
+			d_targets_mat[agent2Off] = tempTarget;
+
 			d_swappedAny = true;
 		}
 	}
 }
 
 
-void runBubbleKernel(bool horizontal, bool odd, int numAgents, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec4 *d_pos_buffer)
+void runBubbleKernel(bool horizontal, bool odd, int numAgents, glm::vec4 *d_pos_mat, glm::vec3 *d_vel_mat, glm::vec3 *d_targets_mat, glm::vec4 *d_pos_buffer)
 {	
 	// Run the sort kernel for one bubble pass
 	int sideLen = (int)sqrt((float)numAgents);
@@ -713,14 +715,14 @@ void runBubbleKernel(bool horizontal, bool odd, int numAgents, glm::vec4 *d_pos_
 	cudaMemcpy(d_pos_buffer, d_pos_mat, numAgents*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 
 	// Writes all new positions into d_pos_buffer
-	iterateBubble<<<gridDims, blockDims>>>(horizontal, odd, sideLen, d_pos_mat, d_vel_mat, d_pos_buffer);
+	iterateBubble<<<gridDims, blockDims>>>(horizontal, odd, sideLen, d_pos_mat, d_vel_mat, d_targets_mat, d_pos_buffer);
 	cudaThreadSynchronize();
 
 	cudaMemcpy(d_pos_mat, d_pos_buffer, numAgents*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	
 }
 
-void spacialSort(int N, glm::vec4 *d_pos, glm::vec3 *d_vel, glm::vec4 *d_pos_buffer, int max_iterations) {
+void spacialSort(int N, glm::vec4 *d_pos, glm::vec3 *d_vel, glm::vec3 *d_targets_mat, glm::vec4 *d_pos_buffer, int max_iterations) {
 	bool swappedAny;
 	int count = 0;
 	do {
@@ -728,10 +730,10 @@ void spacialSort(int N, glm::vec4 *d_pos, glm::vec3 *d_vel, glm::vec4 *d_pos_buf
 		cudaMemcpyToSymbol(d_swappedAny, &swappedAny, sizeof(bool), 0, cudaMemcpyHostToDevice);
 		
 		// iterate bubble sort on odd and even columns and odd and even rows
-		runBubbleKernel(true, false, N, d_pos, d_vel, d_pos_buffer);
-		runBubbleKernel(true, true, N, d_pos, d_vel, d_pos_buffer);
-		runBubbleKernel(false, false, N, d_pos, d_vel, d_pos_buffer);
-		runBubbleKernel(false, true, N, d_pos, d_vel, d_pos_buffer);
+		runBubbleKernel(true, false, N, d_pos, d_vel, d_targets_mat, d_pos_buffer);
+		runBubbleKernel(true, true, N, d_pos, d_vel, d_targets_mat, d_pos_buffer);
+		runBubbleKernel(false, false, N, d_pos, d_vel, d_targets_mat, d_pos_buffer);
+		runBubbleKernel(false, true, N, d_pos, d_vel, d_targets_mat, d_pos_buffer);
 
 		// iterate the bubbling again if we made any swaps (otherwise, it's correct)
 		cudaMemcpyFromSymbol(&swappedAny, d_swappedAny, sizeof(bool), 0, cudaMemcpyDeviceToHost);
@@ -808,7 +810,7 @@ void cudaNBodyUpdateWrapper(float dt)
 	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	// Sort the 2Darray of positions spatially
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
-	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
+	spacialSort(numObjects, dev_pos, dev_vel, dev_targets, dev_pos_buffer, 1);
 #endif
 
 #if RUN_MODE == STEER
