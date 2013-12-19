@@ -1,0 +1,30 @@
+\begin{thebibliography}{\protect\citename{Passos et~al\mbox{.} }2008}
+
+\bibitem[\protect\citename{Curtis and Manocha }]{curtispedestrian}
+{\sc Curtis, S., and Manocha, D.}
+\newblock Pedestrian simulation using geometric reasoning in velocity space.
+
+\bibitem[\protect\citename{Erra et~al\mbox{.} }2009]{erra2009efficient}
+{\sc Erra, U., Frola, B., Scarano, V., and Couzin, I.}
+\newblock 2009.
+\newblock An efficient gpu implementation for large scale individual-based
+  simulation of collective behavior.
+\newblock In {\em High Performance Computational Systems Biology, 2009.
+  HIBI'09. International Workshop on}, IEEE, 51--58.
+
+\bibitem[\protect\citename{Passos et~al\mbox{.} }2008]{passos2008}
+{\sc Passos, E., Joselli, M., Zamith, M., Rocha, J., Montenegro, A., Clua, E.,
+  Conci, A., and Feij{\'o}, B.}
+\newblock 2008.
+\newblock Supermassive crowd simulation on gpu based on emergent behavior.
+\newblock In {\em Proceedings of the VII Brazilian Symposium on Computer Games
+  and Digital Entertainment}, 81--86.
+
+\bibitem[\protect\citename{Silva et~al\mbox{.} }2009]{silva2009boids}
+{\sc Silva, A. R.~D., Lages, W.~S., and Chaimowicz, L.}
+\newblock 2009.
+\newblock Boids that see: Using self-occlusion for simulating large groups on
+  gpus.
+\newblock {\em Computers in Entertainment (CIE) 7}, 4, 51.
+
+\end{thebibliography}

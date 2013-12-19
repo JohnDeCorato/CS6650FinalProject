@@ -1,0 +1,134 @@
+\documentclass[cameraready]{acmsiggraph}  %preprint
+
+%\usepackage[dvips]{epsfig}
+%\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{pgfplots}
+
+
+%% Paper type
+\acmcategory{research}
+%\acmformat{print}
+\onlineid{0000}
+
+\keywords{}
+
+\suppresscover
+
+\usepackage{times}
+%\usepackage{fullpage}
+\usepackage{amsfonts}
+
+\title{\sf Massive Crowd Simulation: Project Report}
+\date{\today}
+
+\author{John Oliver, John Decorato}
+\affiliation{Cornell University}
+
+
+\begin{document}
+
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+
+We propose to implement a large scale crowd simulation on the GPU using NVidia CUDA.  Specifically we would like to start with an algorithm such as boids and move to more complex simulations taking into account psychological models for human motion and crowd interaction.
+
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+What we did:\\
+
+\begin{itemize}
+\item Completed the full paper implementation on the GPU (learned CUDA).
+\item Tested more complex behavioral models (OpenSteer)
+\item comparison tested for realism between optimized models\\
+
+Did not get to:
+\item Implementing psychologically based crowd behaviors -- anything more complicated than simple flocking type movements
+\item Any of the 'ultimate' material
+\end{itemize}
+
+Points to make:\\
+\begin{itemize}
+\item The paper is unclear about how much optimization was done with the method.  When programming with CUDA, one must be very careful to keep from thrashing memory, keeping warps in sync, and keeping all of the cores busy.  Our non-optimized implementation seems to be around 10x times slower than the implementation referenced in the paper, and it seems reasonably likely that this would be caused by differences in optimization.
+\item \textbf{Validation:} The performance of the implementation declines linearly with the number of agents, rather than quadratically, as with a naive $N^2$ approach. \\
+\begin{tabular}{|c||c|}
+\hline
+\# of agents & FPS \\  \hline 
+100 & 53.73 \\  \hline 
+400 & 53.78 \\  \hline 
+1600 & 52.22\\  \hline 
+6400 & 42.62\\  \hline 
+10000 & 23.69\\  \hline 
+250000 & 5.34\\  \hline 
+\end{tabular}
+
+\begin{tikzpicture}
+\begin{loglogaxis}[title=# of Agents on Performance,xlabel={Number of agents},ylabel={Frames Per Second}, ymode=normal]
+\addplot table {fps_plot.dat};
+\end{loglogaxis}
+\end{tikzpicture}
+
+The lower bound on performance seems to be due to simple memory and rendering overheads. 
+\end{itemize}
+
+Large scale crowd simulation is a computationally intensive task with many to architectural space design, emergency response, and virtual cinematography.  Despite this complexity humans are surprisingly adept at optimally maneuvering through crowded areas.  Research is usually done in one of two areas: realistic behavioral models and parallel GPU computing for large scale simulations.   However, the research in the former area is rarely explored in the large scale case.   \\
+\\
+We would like to first consider the large scale case, implementing the "Supermassive Crowd Simulation on GPU based on Emergent Behavior" \cite{passos2008} paper.  Given sufficient time we would like to explore behavioural based crowd simulation and apply these methods to this work.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Related Work}
+We will be building off of \cite{passos2008}, though similar work has been done in the area of massively parallel boids simulation by \cite{silva2009boids}, \cite{erra2009efficient}.\\
+
+Work in the realm of behavioral has been done by \cite{curtispedestrian}, exploring asymmetric models for crowd movement. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Details of Approach}
+
+GPU crowd simulations largely reduce to a modified N-Body problem implemented in parallel.  We plan to implement this by \\
+... Need to fill in specific details...\\
+... Following this paper: (cite Supermassive Crowd Simulation on GPU based on Emergent Behavior)\\
+... Implemented in C++ and CUDA.\\
+... All information organized and mapped as textures\\
+... Each boid stored in a cell has access to the data in the surrounding cells within a specific radius.  <There's a picture in the paper if we could add that: Section 3.1>.
+... Perform a topological sort on position matrix to maintain neighborhood invariant.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Proposed Work}
+
+
+\subsection{Core Material}
+Implement the entirety of the paper:  Supermassive Crowd Simulation on GPU based on Emergent Behavior.  \cite{passos2008}
+
+Our validation for this material would be a real-time simulation running on the GPU of the boids algorithm with a sufficiently high number of agents (above 500,000).
+
+
+\subsection{Material Addressed if Sufficient Time}
+We plan to explore behavioral models for crowd simulation.  In many situations symmetric algorithms such as boids break down. Take for example, a subway station. Pedestrians waiting for a train won't move, and break the assumption of symmetric collision avoidance responsibility. 
+
+We plan to validate against realistic crowd movement scenarios such as the Tawaf (the circling ritual within Islam).  This situation is complex for a non-behavioral model, as pedestrian movement and goals depend highly on the completion of the circle movement pattern rather than the optimization of some path. \cite{curtispedestrian}
+
+
+
+\subsection{Ultimate Material (optional, or unsure of feasibility)} 
+
+Terrain, complex, collision avoidance, roadmaps.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Summary of Proposed Research}
+
+In summary, ...
+
+
+\bibliographystyle{acmsiggraph}
+\bibliography{proposal}
+\end{document}
+
+

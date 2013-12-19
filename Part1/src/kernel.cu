@@ -554,41 +554,46 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 
 	 // Sum up the average vel and pos of the ones around it
 	 float2 avgVel;	 avgVel.x = 0; avgVel.y = 0;
-	 int totalInChunk;
+	 int totalInChunk = 0;
 
 	 // Loop through the SHELL_NUM shells of agents around this body
+#if COMPARE_MODE == MATRIX
 	 for (int i=-SHELL_NUM; i <= SHELL_NUM; i++) {
 		 for (int j=-SHELL_NUM; j <= SHELL_NUM; j++) {
 			 int other_index = getMatOffset(sideLen, i+col, j+row);
+#elif COMPARE_MODE == NAIVE
+	 for (int i=0; i <= sideLen; i++) {
+		 for (int j=0; j <= sideLen; j++) {
+			 int other_index = getMatOffset(sideLen, i, j);
+#endif
 			 if (other_index < 0 || other_index >= num_agents || this_index == other_index) continue;
 			 
-			 // If the other agent is in sight (dot > 0)
-			 if (glm::dot(d_vel[this_index], (glm::vec3)(d_pos[other_index] - d_pos[this_index]))) {
+			 // If the other agent is in sight (dot > 0) and within range
+			 if (glm::dot(d_vel[this_index], (glm::vec3)(d_pos[other_index] - d_pos[this_index])) &&
+				 glm::distance((glm::vec3)d_pos[this_index], (glm::vec3)d_pos[other_index]) < 10)  {
 				 
-				 
-				 // Steer headings only if same type
-				 if (d_pos[this_index].z == d_pos[other_index].z) {
-					totalInChunk++;
-					avgVel.x += d_vel[other_index].x;
-					avgVel.y += d_vel[other_index].y;
-				 }
+				 totalInChunk++;
+				 avgVel.x += d_vel[other_index].x;
+				 avgVel.y += d_vel[other_index].y;
 
 				 glm::vec3 acc = glm::vec3(0.0f);
 				 
-				 // attract only if same type
-				 if (d_pos[this_index].z == d_pos[other_index].z) {
-					 acc += naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
-				 }
-
-				 // separate always
+				 acc += naiveAcc(num_agents, d_pos[this_index], &d_pos[other_index]);
 				 acc += naiveSeparation(d_pos[this_index], d_pos[other_index]);
 
 				 d_acc[this_index].x += acc.x * dt;
 				 d_acc[this_index].y += acc.y * dt;
 			 } else {
-
 			 }
 		 }
+	 }
+
+	 //d_vel[this_index] = glm::vec3(1.0,0,0);
+	 //return;
+
+	 if (totalInChunk == 0) {
+		 d_vel[this_index] = glm::normalize(d_vel[this_index]);
+		 return;
 	 }
 
 	 avgVel.x /= totalInChunk;
@@ -599,7 +604,24 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 	 aVelV.y = avgVel.y;
 
 	 glm::vec3 targetVel = aVelV * .5f + d_acc[this_index] * 0.5f;
-	 glm::vec3 finalVel = glm::normalize(d_vel[this_index]) * .9f + glm::normalize(targetVel) * 0.1f;
+
+	 glm::vec3 finalVel;
+	 glm::vec3 probedvel = d_vel[this_index];
+
+	 // If the current velocity is 0 give it a velocity to the right
+	 if (glm::length(d_vel[this_index]) == 0) {
+		 d_vel[this_index] = vec3(1.0, 0, 0);
+	 }
+	 
+	 // If there are no outside forces, just set the finalVel to current
+	 if (glm::length(targetVel) == 0) {
+		finalVel = glm::vec3(d_vel[this_index]);
+	 } else {
+		probedvel = d_vel[this_index];
+		glm::vec3 curVelNorm = glm::normalize(d_vel[this_index]);
+		glm::vec3 tarVelNorm = glm::normalize(targetVel);
+		finalVel = curVelNorm * .9f + tarVelNorm * 0.1f;
+	 }
 
 	 d_vel[this_index] = 2.0f*finalVel;
 	 
@@ -729,8 +751,8 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
 	cudaMalloc((void**)&dev_targets, N*sizeof(glm::vec3));
 
-	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
-    //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+	//generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, 10);
+    generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
     checkCUDAErrorWithLine("Kernel failed!");
     generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
@@ -756,25 +778,22 @@ void cudaNBodyUpdateWrapper(float dt)
 	clearAccs<<<gridLength, blockLength>>>(numObjects, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
 	cudaThreadSynchronize();
+	
+#if COMPARE_MODE == MATRIX
 	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	// Sort the 2Darray of positions spatially
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
 	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
-
-	/////////////////////////////////////////////////////////////////////////////
-	// N^2 VERSION OF CROWDS
-	/////////////////////////////////////////////////////////////////////////////
-
-
+#endif
 
 	// Average forces from the 16 objects spacially around you
-	//updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
-	//checkCUDAErrorWithLine("Kernel failed!");
-    //cudaThreadSynchronize();
+	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
+	checkCUDAErrorWithLine("Kernel failed!");
+    cudaThreadSynchronize();
 
 	// Update positions of all particles!
-	//updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
-    //checkCUDAErrorWithLine("Kernel failed!");
+	updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
+    checkCUDAErrorWithLine("Kernel failed!");
 
 	// Update the position buffer with the new positions
 	
