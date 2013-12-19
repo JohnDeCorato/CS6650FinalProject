@@ -143,8 +143,17 @@ void display()
 	if ((location = glGetUniformLocation(program[1], "sideLen")) != -1)
     {
 		glUniform1i(location, (int)sqrt((float)N_FOR_VIS));
-
     }
+	if ((location = glGetUniformLocation(program[1], "matrixColoring")) != -1)
+    {
+#if COLOR_MODE == COLOR_MIXED
+		int colorAsMatrix = 1;
+#else 
+		int colorAsMatrix = 0;
+#endif
+		glUniform1i(location, colorAsMatrix);
+    }
+
 
     glEnableVertexAttribArray(positionLocation);
 	glEnableVertexAttribArray(indexLocation);
@@ -306,9 +315,11 @@ void initVAO(void)
         bodies[4*i+1] = 0.0f;
         bodies[4*i+2] = 0.0f;
         bodies[4*i+3] = 1.0f;
+#if COLOR_MODE == COLOR_MIXED
+		bind[i] = i;
+#else
 		bind[i] = i%2;
-		printf("%i", i %2);
-		//bind[i] = i;
+#endif
         bindices[i] = i;
 		
     }

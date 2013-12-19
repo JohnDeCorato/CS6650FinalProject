@@ -1,18 +1,39 @@
-#define N_FOR_VIS (1600)
+#define N_FOR_VIS (100)
 #define DT .2
 #define VISUALIZE 1
 #define SOFTENING_FACTOR .0001
 #define SHELL_NUM 2
 #define INSTACING 0
 
+// ========
+#define RANDOM_POS 1
+#define WALLS 2
+#define POS_MODE WALLS
+
+// ========
 // MATRIX for matrix, NAIVE for n^2 version
 #define MATRIX 1
 #define NAIVE 2
-#define COMPARE_MODE MATRIX
+#define COMPARE_MODE NAIVE
+
+// ========
+#define BOIDS 2
+#define STEER 3
+#define RUN_MODE STEER
+
+// ========
+#define COLOR_MIXED 1
+#define COLOR_DIVIDED 2
+#define COLOR_MODE COLOR_DIVIDED
 
 #define PLANET_MASS 3e8
 #define STAR_MASS 5e10
 #define SCENE_SCALE 1e2 //size of the height map in simulation space
+
+
+// BOIDS CONSTANTS
+#define ATTRACTION_RADIUS 30.0
+
 
 // OPENSTEER Library Constants
 #define AVOID_RADIUS 7.0

@@ -461,7 +461,7 @@ void getAccelForTarget(int N, glm::vec4 * pos, glm::vec3 * targets, glm::vec3 * 
 // The N^2 version of the neighbors update
 // TODO: The matrix version (and a simple discrete lookahead version?)
 __global__
-void getAvoidanceAccel(int N, vec4 * pos, vec3 * vel, vec3 * accel)
+void getAvoidanceAccel(int N, int sideLen, vec4 * pos, vec3 * vel, vec3 * accel)
 {
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if (index < N)
@@ -479,13 +479,31 @@ void getAvoidanceAccel(int N, vec4 * pos, vec3 * vel, vec3 * accel)
 			accel[index] += avoidance*50.0f;
 		}
 		else {
-			for (int i = 0; i < N; i++) {
-				if (i != index) {
-					glm::vec3 temp = steerToAvoidNeighbor(glm::vec3(pos[index]), vel[index], vec3(pos[i]), vel[i], 0);
-					if (glm::length(temp) > glm::length(avoidance))
-						avoidance = temp;
+			int col = index / sideLen;
+			int row = index % sideLen;
+
+			// Sum up the average vel and pos of the ones around it
+			float2 avgVel;	 avgVel.x = 0; avgVel.y = 0;
+			int totalInChunk = 0;
+
+			// Loop through the SHELL_NUM shells of agents around this body
+#if COMPARE_MODE == MATRIX
+			for (int i=-SHELL_NUM; i <= SHELL_NUM; i++) {
+				for (int j=-SHELL_NUM; j <= SHELL_NUM; j++) {
+					int other_index = getMatOffset(sideLen, i+col, j+row);
+#elif COMPARE_MODE == NAIVE
+			{
+				for (int other_index = 0; other_index < N; other_index++) {
+#endif
+					if (other_index != index) {
+						glm::vec3 temp = steerToAvoidNeighbor(glm::vec3(pos[index]), vel[index], vec3(pos[other_index]), vel[other_index], 0);
+						if (glm::length(temp) > glm::length(avoidance))
+							avoidance = temp;
+					}
+
 				}
 			}
+
 
 			if (length(avoidance) != 0)
 				accel[index] += 10.0f * glm::normalize(avoidance);
@@ -572,7 +590,7 @@ void updateForces(int num_agents, int sideLen, float dt, glm::vec4 *d_pos, glm::
 			 
 			 // If the other agent is in sight (dot > 0) and within range
 			 if (glm::dot(d_vel[this_index], (glm::vec3)(d_pos[other_index] - d_pos[this_index])) &&
-				 glm::distance((glm::vec3)d_pos[this_index], (glm::vec3)d_pos[other_index]) < 10)  {
+				 glm::distance((glm::vec3)d_pos[this_index], (glm::vec3)d_pos[other_index]) < ATTRACTION_RADIUS )  {
 				 
 				 totalInChunk++;
 				 avgVel.x += d_vel[other_index].x;
@@ -755,8 +773,11 @@ void initCuda(int N)
     checkCUDAErrorWithLine("Kernel failed!");
 	cudaThreadSynchronize();
 
+#if POS_MODE == WALLS
 	generateTwoLinesCrowds<<<fullBlocksPerGrid, BLOCK_SIZE>>>(numObjects, dev_pos, dev_targets, dev_vel, NUM_PER_COLUMN);
-    //generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+#elif POS_MODE == RANDOM_POS
+    generateRandomPosArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(1, numObjects, dev_pos, scene_scale, planetMass);
+#endif
     checkCUDAErrorWithLine("Kernel failed!");
     //generateCircularVelArray<<<fullBlocksPerGrid, BLOCK_SIZE>>>(2, numObjects, dev_vel, dev_pos);
     checkCUDAErrorWithLine("Kernel failed!");
@@ -787,8 +808,10 @@ void cudaNBodyUpdateWrapper(float dt)
 	cudaMemcpy(dev_pos_buffer, dev_pos, numObjects*sizeof(glm::vec4), cudaMemcpyDeviceToDevice);
 	// Sort the 2Darray of positions spatially
 	// Need to pass dev_pos and dev_vel because it swaps array elements around
-	//spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
+	spacialSort(numObjects, dev_pos, dev_vel, dev_pos_buffer, 1);
+#endif
 
+#if RUN_MODE == STEER
 	/////////////////////////////////////////////////////////////////////////////
 	// N^2 VERSION OF CROWDS
 	/////////////////////////////////////////////////////////////////////////////
@@ -796,14 +819,17 @@ void cudaNBodyUpdateWrapper(float dt)
 	checkCUDAErrorWithLine("Kernel failed!");
 	cudaThreadSynchronize();
 
-	getAvoidanceAccel<<<gridLength, blockLength>>>(numObjects, dev_pos, dev_vel, dev_acc);
+	getAvoidanceAccel<<<gridLength, blockLength>>>(numObjects, sideLen, dev_pos, dev_vel, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
 	cudaThreadSynchronize();
 
 	updateVelocity<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
 	//cudaThreadSynchronize();
+#endif
 
+#if RUN_MODE == BOIDS
+	// Calculate Boids forces
 	// Average forces from the 16 objects spacially around you
 	updateForces<<<gridLength, blockLength>>>(numObjects, sideLen, dt, dev_pos, dev_vel, dev_acc);
 	checkCUDAErrorWithLine("Kernel failed!");
@@ -812,11 +838,11 @@ void cudaNBodyUpdateWrapper(float dt)
 	// Update positions of all particles!
 	updateS<<<gridLength, blockLength>>>(numObjects, dt, dev_pos, dev_vel, dev_acc);
     checkCUDAErrorWithLine("Kernel failed!");
-
-	// Update the position buffer with the new positions
+	cudaThreadSynchronize();
+#endif
 	
     
-	cudaThreadSynchronize();
+	
 	return;
 }
 
