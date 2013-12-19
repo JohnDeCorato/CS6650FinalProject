@@ -300,14 +300,17 @@ void initVAO(void)
         }
     }
 
-    for(int i = 0; i < N_FOR_VIS+1; i++)
+    for(int i = 0; i < N_FOR_VIS; i++)
     {
         bodies[4*i+0] = 0.0f;
         bodies[4*i+1] = 0.0f;
         bodies[4*i+2] = 0.0f;
         bodies[4*i+3] = 1.0f;
-		bind[i] = i;
+		bind[i] = i%2;
+		printf("%i", i %2);
+		//bind[i] = i;
         bindices[i] = i;
+		
     }
 
     glGenBuffers(1, &planeVBO);
@@ -328,16 +331,16 @@ void initVAO(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*num_faces*sizeof(GLuint), indices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, planetVBO);
-    glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS+1)*sizeof(GLfloat), bodies, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS)*sizeof(GLfloat), bodies, GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, targetVBO);
-	glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS+1)*sizeof(GLfloat), bodies, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 4*(N_FOR_VIS)*sizeof(GLfloat), bodies, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, planetInBO);
-	glBufferData(GL_ARRAY_BUFFER, (N_FOR_VIS+1)*sizeof(GLint), bind, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (N_FOR_VIS)*sizeof(GLint), bind, GL_DYNAMIC_DRAW);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planetIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (N_FOR_VIS+1)*sizeof(GLuint), bindices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (N_FOR_VIS)*sizeof(GLuint), bindices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

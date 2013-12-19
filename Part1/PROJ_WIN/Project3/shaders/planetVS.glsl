@@ -10,14 +10,11 @@ out Data{
 
 void main(void)
 {
-	if (Position.w == 0)
-	{
+	//DataOut.vColor = vec4((float)(Index/(int)sideLen)/(float)sideLen, (float)(Index%(int)sideLen)/(float)sideLen, 0, 1);//Index % (int)sideLen, 0, 1);
+	if (Index == 0)
 		DataOut.vColor = vec4(1,0,0,1);
-	}
 	else
-	{
 		DataOut.vColor = vec4(0,1,0,1);
-	}
 
-	gl_Position = vec4(Position.xyz,1);
+	gl_Position = Position;
 }
